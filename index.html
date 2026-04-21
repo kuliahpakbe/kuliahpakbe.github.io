@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuliah PakBe - Platform Pembelajaran IT UNIMMA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    },
+                    colors: {
+                        slate: {
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+            color: #e2e8f0; /* slate-200 */
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+        
+        /* Background Grid Pattern */
+        .bg-grid-pattern {
+            background-image: linear-gradient(to right, rgba(79, 79, 79, 0.1) 1px, transparent 1px), 
+                              linear-gradient(to bottom, rgba(79, 79, 79, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+        }
+
+        /* Nav Scroll State */
+        .nav-scrolled {
+            background-color: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* Hide Scrollbar for cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+    </style>
+</head>
+<body class="selection:bg-cyan-500/30">
+
+    <!-- Background Elements -->
+    <div class="fixed inset-0 z-0 pointer-events-none bg-grid-pattern"></div>
+    <div class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/20 blur-[120px] pointer-events-none z-0"></div>
+    <div class="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/20 blur-[120px] pointer-events-none z-0"></div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 py-6 bg-transparent">
+        <div class="container mx-auto px-6 md:px-12 flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)] overflow-hidden bg-white/5">
+                    <img src="https://lh3.googleusercontent.com/d/1oHesOKcIBRa2L6x92jOwmOzaC8IkpZN9" alt="Logo" class="w-full h-full object-contain" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'16 18 22 12 16 6\'></polyline><polyline points=\'8 6 2 12 8 18\'></polyline></svg>'">
+                </div>
+                <span class="text-xl font-bold tracking-wider text-white">Kuliah<span class="text-cyan-400">PakBe</span>.</span>
+            </div>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium">
+                <a href="#beranda" class="hover:text-cyan-400 transition-colors">Beranda</a>
+                <a href="#materi" class="hover:text-cyan-400 transition-colors">Materi Kuliah</a>
+                <a href="#resources" class="hover:text-cyan-400 transition-colors">Sumber Daya</a>
+                <a href="#profil" class="hover:text-cyan-400 transition-colors">Profil</a>
+                <a href="#" class="px-5 py-2 rounded-full border border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-400 transition-all shadow-[0_0_10px_rgba(6,182,212,0.2)] hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+                    Portal Mahasiswa
+                </a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn" class="md:hidden text-slate-300 focus:outline-none">
+                <svg id="icon-menu" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                <svg id="icon-close" class="hidden" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-slate-900 border-b border-white/10 shadow-2xl backdrop-blur-lg flex flex-col items-center py-6 gap-4 transition-all">
+            <a href="#beranda" class="w-full text-center py-2 hover:bg-white/5 mobile-link">Beranda</a>
+            <a href="#materi" class="w-full text-center py-2 hover:bg-white/5 mobile-link">Materi Kuliah</a>
+            <a href="#resources" class="w-full text-center py-2 hover:bg-white/5 mobile-link">Sumber Daya</a>
+            <a href="#profil" class="w-full text-center py-2 hover:bg-white/5 mobile-link">Profil</a>
+            <a href="#" class="mt-2 px-6 py-2 rounded-full border border-cyan-500/50 text-cyan-400">Portal Mahasiswa</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="beranda" class="relative z-10 pt-40 pb-20 md:pt-52 md:pb-32 container mx-auto px-6 md:px-12 flex flex-col items-center text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-cyan-300 mb-8">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            Platform Pembelajaran IT UNIMMA
+        </div>
+        
+        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-blue-200 drop-shadow-sm leading-tight">
+            Akselerasi Kompetensi <br class="hidden md:block"/> Teknologi Informasi
+        </h1>
+        
+        <p class="max-w-2xl text-lg md:text-xl text-slate-400 mb-10 leading-relaxed">
+            Membekali mahasiswa menjadi talenta digital yang kompetitif, berwawasan luas, dan siap menjawab tantangan industri keamanan siber serta infrastruktur jaringan di masa depan.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4">
+            <a href="#materi" class="px-8 py-4 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] transition-all hover:-translate-y-1">
+                Mulai Belajar Sekarang 
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+            <a href="#resources" class="px-8 py-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white font-semibold flex items-center justify-center gap-2 transition-all backdrop-blur-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4"/><path d="M18 5v17"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></svg>
+                Lihat Peta Jalan
+            </a>
+        </div>
+    </section>
+
+    <!-- Courses Section -->
+    <section id="materi" class="relative z-10 py-20 bg-slate-900/50 border-y border-white/5">
+        <div class="container mx-auto px-6 md:px-12">
+            <div class="mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">Materi <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Perkuliahan</span></h2>
+                <div class="w-20 h-1 bg-cyan-500 rounded-full"></div>
+                <p class="mt-4 text-slate-400 max-w-2xl">Materi mendalam yang dirancang untuk membangun pondasi kuat pada infrastruktur IT dan perlindungan data.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Course 1 -->
+                <div class="group p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-cyan-500/50 hover:bg-cyan-900/10 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col h-full">
+                    <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Jaringan Komputer</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed flex-grow">Dasar-dasar, topologi, routing, dan implementasi infrastruktur jaringan modern.</p>
+                    <div class="mt-6 flex items-center gap-2 text-cyan-400 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0">
+                        Akses Modul <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                </div>
+
+                <!-- Course 2 -->
+                <div class="group p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-cyan-500/50 hover:bg-cyan-900/10 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col h-full">
+                    <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Keamanan Jaringan</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed flex-grow">Strategi perlindungan, firewall, IDS/IPS, dan mitigasi ancaman siber terkini.</p>
+                    <div class="mt-6 flex items-center gap-2 text-cyan-400 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0">
+                        Akses Modul <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                </div>
+
+                <!-- Course 3 -->
+                <div class="group p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-cyan-500/50 hover:bg-cyan-900/10 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col h-full">
+                    <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Ethical Hacking</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed flex-grow">Teknik penetrasi legal, vulnerability assessment, dan pengujian keamanan sistem.</p>
+                    <div class="mt-6 flex items-center gap-2 text-cyan-400 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0">
+                        Akses Modul <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                </div>
+
+                <!-- Course 4 -->
+                <div class="group p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-cyan-500/50 hover:bg-cyan-900/10 transition-all duration-300 hover:-translate-y-2 cursor-pointer flex flex-col h-full">
+                    <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Sistem Operasi</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed flex-grow">Manajemen memori, proses, file system, dan 12 modul praktikum OS terstruktur.</p>
+                    <div class="mt-6 flex items-center gap-2 text-cyan-400 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0">
+                        Akses Modul <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Resources Section -->
+    <section id="resources" class="relative z-10 py-24 container mx-auto px-6 md:px-12">
+        <div class="flex flex-col md:flex-row justify-between md:items-end mb-16 gap-6">
+            <div>
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">Sumber Daya <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Akademik</span></h2>
+                <div class="w-20 h-1 bg-cyan-500 rounded-full"></div>
+            </div>
+            <a href="#" class="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium group">
+                Lihat Semua <svg class="group-hover:translate-x-1 transition-transform" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Resource Item -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 hover:border-slate-500 transition-colors flex items-center gap-6 cursor-pointer group">
+                <div class="p-4 rounded-full bg-slate-800 border border-slate-600 group-hover:border-cyan-500 group-hover:text-cyan-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-cyan-500 uppercase tracking-wider mb-1">Multimedia & Security</p>
+                    <h4 class="text-lg font-bold text-white group-hover:text-cyan-100 transition-colors">Tutorial Interaktif</h4>
+                </div>
+            </div>
+
+            <!-- Resource Item -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 hover:border-slate-500 transition-colors flex items-center gap-6 cursor-pointer group">
+                <div class="p-4 rounded-full bg-slate-800 border border-slate-600 group-hover:border-cyan-500 group-hover:text-cyan-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-cyan-500 uppercase tracking-wider mb-1">Referensi Akademik</p>
+                    <h4 class="text-lg font-bold text-white group-hover:text-cyan-100 transition-colors">E-Book & Jurnal</h4>
+                </div>
+            </div>
+
+            <!-- Resource Item -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 hover:border-slate-500 transition-colors flex items-center gap-6 cursor-pointer group">
+                <div class="p-4 rounded-full bg-slate-800 border border-slate-600 group-hover:border-cyan-500 group-hover:text-cyan-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-cyan-500 uppercase tracking-wider mb-1">Uji Kompetensi</p>
+                    <h4 class="text-lg font-bold text-white group-hover:text-cyan-100 transition-colors">Quiz Evaluasi</h4>
+                </div>
+            </div>
+
+            <!-- Resource Item -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 hover:border-slate-500 transition-colors flex items-center gap-6 cursor-pointer group">
+                <div class="p-4 rounded-full bg-slate-800 border border-slate-600 group-hover:border-cyan-500 group-hover:text-cyan-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-cyan-500 uppercase tracking-wider mb-1">Penelitian Dosen</p>
+                    <h4 class="text-lg font-bold text-white group-hover:text-cyan-100 transition-colors">Publikasi Riset</h4>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Section -->
+    <section id="profil" class="relative z-10 py-20 bg-gradient-to-b from-transparent to-slate-900/80 border-t border-white/5">
+        <div class="container mx-auto px-6 md:px-12">
+            <div class="max-w-4xl mx-auto rounded-3xl bg-slate-900/80 border border-white/10 p-8 md:p-12 backdrop-blur-lg flex flex-col md:flex-row items-center gap-10">
+                <div class="w-32 h-32 md:w-48 md:h-48 shrink-0 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 p-1">
+                    <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                        <img src="https://lh3.googleusercontent.com/d/1GCo_udPbjnQOtCZZGHDmAy_rI-2tXZCr" alt="Profil Bambang Pujiarto" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' class=\'text-slate-500\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\'/><circle cx=\'12\' cy=\'7\' r=\'4\'/></svg>'">
+                    </div>
+                </div>
+                <div class="text-center md:text-left">
+                    <div class="inline-block px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold tracking-widest uppercase mb-4 border border-blue-500/20">
+                        Pengampu Mata Kuliah
+                    </div>
+                    <h2 class="text-3xl font-bold text-white mb-2">Bambang Pujiarto, S.Kom., M.Kom.</h2>
+                    <p class="text-slate-400 mb-6 font-medium">Dosen Program Studi Teknologi Informasi<br/>Universitas Muhammadiyah Magelang</p>
+                    
+                    <div class="flex flex-wrap justify-center md:justify-start gap-2 mb-6">
+                        <span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-slate-300">Cyber Security</span>
+                        <span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-slate-300">Networking</span>
+                        <span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-slate-300">Operating System</span>
+                        <span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-slate-300">Ethical Hacking</span>
+                    </div>
+
+                    <div class="flex items-center justify-center md:justify-start gap-4 text-sm">
+                        <a href="mailto:bepe@unimma.ac.id" class="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                            bepe@unimma.ac.id
+                        </a>
+                        <span class="text-slate-600">|</span>
+                        <a href="https://unimma.ac.id" target="_blank" class="flex items-center gap-2 text-slate-400 hover:text-slate-300 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                            unimma.ac.id
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-white/10 bg-slate-950 py-8">
+        <div class="container mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+            <p>© 2026 Kuliah PakBe. Universitas Muhammadiyah Magelang.</p>
+            <div class="flex gap-4">
+                <a href="#" class="hover:text-white transition-colors">Newsletter</a>
+                <a href="#" class="hover:text-white transition-colors">Jadwal Kuliah</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Interactivity -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Navbar Scroll Effect
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 20) {
+                    navbar.classList.add('nav-scrolled');
+                    navbar.classList.remove('py-6');
+                } else {
+                    navbar.classList.remove('nav-scrolled');
+                    navbar.classList.add('py-6');
+                }
+            });
+
+            // Mobile Menu Toggle
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const iconMenu = document.getElementById('icon-menu');
+            const iconClose = document.getElementById('icon-close');
+            const mobileLinks = document.querySelectorAll('.mobile-link');
+
+            function toggleMenu() {
+                mobileMenu.classList.toggle('hidden');
+                iconMenu.classList.toggle('hidden');
+                iconClose.classList.toggle('hidden');
+            }
+
+            mobileBtn.addEventListener('click', toggleMenu);
+
+            // Close mobile menu when a link is clicked
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        toggleMenu();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
