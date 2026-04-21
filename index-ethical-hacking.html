@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Gate: Ethical Hacking Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"Fira Code"', 'monospace'],
+                    },
+                    colors: {
+                        matrix: {
+                            100: '#bafebf',
+                            300: '#4cfb57',
+                            500: '#00ff41', // Classic Matrix Green
+                            700: '#008f11',
+                            900: '#003b00',
+                            bg: '#0a0a0a'
+                        },
+                        alert: '#ff003c'
+                    },
+                    animation: {
+                        'blink': 'blink 1s step-end infinite',
+                        'scanline': 'scanline 8s linear infinite',
+                        'glitch': 'glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite',
+                    },
+                    keyframes: {
+                        blink: {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0 },
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100vh)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #00ff41;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Matrix Canvas Background */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15; /* Dimmed so it doesn't distract from text */
+            pointer-events: none;
+        }
+
+        /* CRT Monitor Effects */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 50;
+            pointer-events: none;
+        }
+        
+        .scanline-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 255, 65, 0.1);
+            opacity: 0.4;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+            z-index: 51;
+            pointer-events: none;
+        }
+
+        /* Terminal Window Styling */
+        .terminal-box {
+            background: rgba(5, 5, 5, 0.85);
+            backdrop-filter: blur(4px);
+            border: 1px solid #008f11;
+            box-shadow: 0 0 15px rgba(0, 143, 17, 0.3), inset 0 0 20px rgba(0, 143, 17, 0.1);
+        }
+
+        /* Custom Scrollbar for Terminal */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; border-left: 1px solid #003b00; }
+        ::-webkit-scrollbar-thumb { background: #008f11; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff41; }
+
+        /* Custom Checkbox Hacker Style */
+        .hacker-checkbox input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #008f11;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+            vertical-align: middle;
+            margin-top: -2px;
+        }
+        
+        .hacker-checkbox input[type="checkbox"]:checked {
+            background: rgba(0, 255, 65, 0.2);
+            border-color: #00ff41;
+            box-shadow: 0 0 8px rgba(0, 255, 65, 0.5);
+        }
+
+        .hacker-checkbox input[type="checkbox"]:checked::after {
+            content: 'x';
+            position: absolute;
+            top: -5px;
+            left: 3px;
+            color: #00ff41;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Input Fields */
+        .cli-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #008f11;
+            color: #00ff41;
+            font-family: 'Fira Code', monospace;
+            outline: none;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .cli-input:focus {
+            border-bottom-color: #00ff41;
+            box-shadow: 0 1px 0 0 #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+        }
+        
+        .cli-input::placeholder {
+            color: #003b00;
+        }
+
+        /* Action Button */
+        .btn-execute {
+            background: transparent;
+            color: #008f11;
+            border: 1px solid #008f11;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+        }
+        
+        .btn-execute:not(:disabled):hover {
+            background: rgba(0, 255, 65, 0.15);
+            color: #00ff41;
+            border-color: #00ff41;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+            cursor: pointer;
+        }
+        
+        .btn-execute:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Access Granted Overlay */
+        #access-granted {
+            background: rgba(0, 59, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        .text-glow {
+            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+        }
+    </style>
+</head>
+<body class="font-mono h-screen flex flex-col items-center justify-center relative">
+
+    <!-- Background Elements -->
+    <canvas id="matrix-canvas"></canvas>
+    <div class="crt-overlay"></div>
+    <div class="scanline-effect animate-scanline"></div>
+
+    <!-- Main Container -->
+    <main class="relative z-10 w-full max-w-4xl p-4 md:p-6 h-[90vh] flex flex-col">
+        
+        <div class="terminal-box flex-grow flex flex-col p-1 rounded">
+            <!-- Terminal Header -->
+            <header class="bg-matrix-900 border-b border-matrix-700 px-4 py-2 flex justify-between items-center text-xs text-matrix-300">
+                <div class="flex space-x-2">
+                    <span>root@sec-lab:~/KPT0502328</span>
+                </div>
+                <div class="flex space-x-3 items-center">
+                    <span class="opacity-70">ETHICAL_HACKING_PROTOCOL_v1.0</span>
+                    <div class="flex space-x-1">
+                        <div class="w-3 h-3 border border-matrix-700 flex items-center justify-center hover:bg-matrix-700 cursor-pointer"><i class="fas fa-minus text-[8px]"></i></div>
+                        <div class="w-3 h-3 border border-matrix-700 flex items-center justify-center hover:bg-matrix-700 cursor-pointer"><i class="far fa-square text-[8px]"></i></div>
+                        <div class="w-3 h-3 border border-matrix-700 flex items-center justify-center hover:bg-alert hover:border-alert hover:text-white text-matrix-700 cursor-pointer transition-colors"><i class="fas fa-times text-[8px]"></i></div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Terminal Body (Scrollable) -->
+            <div class="p-6 md:p-8 overflow-y-auto flex-grow" id="terminal-body">
+                
+                <!-- Initial Boot Sequence Text -->
+                <div id="boot-sequence" class="mb-6 text-sm text-matrix-300 opacity-80 leading-relaxed">
+                    <!-- Typed dynamically by JS -->
+                </div>
+
+                <!-- Hidden Form Content (Revealed after boot) -->
+                <div id="nda-form-container" class="hidden opacity-0 transition-opacity duration-1000">
+                    
+                    <div class="border border-alert/50 bg-alert/5 p-4 mb-8 relative">
+                        <div class="absolute -top-3 left-4 bg-matrix-bg px-2 text-alert font-bold text-sm">SECURITY CLEARANCE REQUIRED</div>
+                        <h2 class="text-xl md:text-2xl font-bold text-matrix-100 mb-2 mt-2">PERNYATAAN ETIKA KEAMANAN SIBER</h2>
+                        <p class="text-xs text-matrix-300/70 mb-4">Mata Kuliah: Keamanan Siber Dasar (Ethical Hacking) | Dosen: Bambang Pujiarto, S.Kom., M.Kom.</p>
+                        <p class="text-sm leading-relaxed text-justify">Akses ke laboratorium simulasi peretasan dan peralatan (*Arsenal*) dibatasi secara ketat. Sesuai dengan Lampiran 4 RPS, setiap praktikan WAJIB mengikatkan diri pada <em>Rules of Engagement</em> berikut ini.</p>
+                    </div>
+
+                    <!-- Identity Input -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="flex flex-col">
+                            <label class="text-xs text-matrix-700 mb-1 flex items-center"><i class="fas fa-angle-right mr-2"></i> $ input_nama_lengkap</label>
+                            <div class="flex items-center">
+                                <span class="mr-2 text-matrix-500 font-bold">></span>
+                                <input type="text" id="input-nama" class="cli-input py-2" placeholder="Nama Mahasiswa" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-xs text-matrix-700 mb-1 flex items-center"><i class="fas fa-angle-right mr-2"></i> $ input_nim</label>
+                            <div class="flex items-center">
+                                <span class="mr-2 text-matrix-500 font-bold">></span>
+                                <input type="text" id="input-nim" class="cli-input py-2" placeholder="Nomor Induk Mahasiswa" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rule Checkboxes -->
+                    <div class="space-y-4 mb-8 text-sm" id="rules-container">
+                        <p class="text-matrix-500 mb-4 font-bold border-b border-matrix-900 pb-2">Verifikasi Kesediaan (Tandai [x] untuk menyetujui):</p>
+                        
+                        <label class="flex items-start hacker-checkbox group hover:bg-matrix-900/30 p-2 -ml-2 rounded transition-colors cursor-pointer">
+                            <input type="checkbox" class="rule-cb mt-1 mr-4 flex-shrink-0">
+                            <span class="text-matrix-300 group-hover:text-matrix-100 transition-colors leading-relaxed">
+                                <span class="text-matrix-700 mr-2">[RULE 01]</span> Saya hanya akan melakukan aktivitas <em>scanning, testing</em>, dan <em>exploitation</em> pada lingkungan lab yang disediakan (VM & platform yang disetujui dosen).
+                            </span>
+                        </label>
+                        
+                        <label class="flex items-start hacker-checkbox group hover:bg-matrix-900/30 p-2 -ml-2 rounded transition-colors cursor-pointer">
+                            <input type="checkbox" class="rule-cb mt-1 mr-4 flex-shrink-0">
+                            <span class="text-matrix-300 group-hover:text-matrix-100 transition-colors leading-relaxed">
+                                <span class="text-matrix-700 mr-2">[RULE 02]</span> Saya TIDAK akan melakukan serangan, scanning, atau aktivitas <em>hacking</em> pada sistem yang tidak memiliki izin (<em>unauthorized access</em>).
+                            </span>
+                        </label>
+
+                        <label class="flex items-start hacker-checkbox group hover:bg-matrix-900/30 p-2 -ml-2 rounded transition-colors cursor-pointer">
+                            <input type="checkbox" class="rule-cb mt-1 mr-4 flex-shrink-0">
+                            <span class="text-matrix-300 group-hover:text-matrix-100 transition-colors leading-relaxed">
+                                <span class="text-matrix-700 mr-2">[RULE 03]</span> Saya memahami bahwa pelanggaran terhadap ketentuan ini dapat dikenakan sanksi akademik dan/atau sanksi hukum sesuai UU ITE yang berlaku.
+                            </span>
+                        </label>
+
+                        <label class="flex items-start hacker-checkbox group hover:bg-matrix-900/30 p-2 -ml-2 rounded transition-colors cursor-pointer">
+                            <input type="checkbox" class="rule-cb mt-1 mr-4 flex-shrink-0">
+                            <span class="text-matrix-300 group-hover:text-matrix-100 transition-colors leading-relaxed">
+                                <span class="text-matrix-700 mr-2">[RULE 04]</span> Jika secara tidak sengaja menemukan kerentanan pada sistem nyata, saya akan melaporkan kepada dosen pengampu untuk dilakukan <em>responsible disclosure</em>.
+                            </span>
+                        </label>
+
+                        <label class="flex items-start hacker-checkbox group hover:bg-matrix-900/30 p-2 -ml-2 rounded transition-colors cursor-pointer">
+                            <input type="checkbox" class="rule-cb mt-1 mr-4 flex-shrink-0">
+                            <span class="text-matrix-300 group-hover:text-matrix-100 transition-colors leading-relaxed">
+                                <span class="text-matrix-700 mr-2">[RULE 05]</span> Saya akan menjaga kerahasiaan seluruh metode dan temuan kerentanan selama praktikum berlangsung.
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Digital Signature / Error Msg -->
+                    <div class="flex flex-col md:flex-row justify-between items-center border-t border-matrix-900 pt-6">
+                        <div class="mb-4 md:mb-0 text-xs text-matrix-700 flex items-center h-8">
+                            <span id="status-msg" class="hidden"><i class="fas fa-lock text-alert mr-2"></i> Lengkapi identitas dan setujui seluruh pakta.</span>
+                        </div>
+                        
+                        <button id="btn-submit" disabled class="btn-execute py-3 px-8 font-bold flex items-center relative group overflow-hidden w-full md:w-auto justify-center">
+                            <div class="absolute inset-0 bg-matrix-500/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                            <span class="relative z-10 flex items-center">
+                                [ INITIALIZE ACCESS ] <i class="fas fa-terminal ml-3 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                            </span>
+                        </button>
+                    </div>
+
+                </div>
+                
+                <!-- Blinking cursor at the bottom -->
+                <div class="mt-4 text-matrix-500 font-bold" id="main-cursor">><span class="animate-blink">_</span></div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3 text-[10px] text-matrix-900 font-bold tracking-widest uppercase">
+            Universitas Muhammadiyah Magelang &bull; D3 Teknologi Informasi
+        </div>
+    </main>
+
+    <!-- FULLSCREEN ACCESS GRANTED OVERLAY -->
+    <div id="access-granted" class="fixed inset-0 hidden flex-col items-center justify-center text-center">
+        <i class="fas fa-unlock-alt text-6xl md:text-8xl text-matrix-500 mb-8 text-glow animate-pulse"></i>
+        <h1 class="text-4xl md:text-6xl font-black text-matrix-100 tracking-widest text-glow mb-4">ACCESS GRANTED</h1>
+        <p class="text-matrix-300 text-lg md:text-xl font-mono mb-8">Welcome to the Arsenal, <span id="granted-name" class="font-bold text-white uppercase">User</span>.</p>
+        
+        <div class="w-64 bg-matrix-900 h-1 mb-4 relative overflow-hidden">
+            <div class="absolute top-0 left-0 h-full bg-matrix-500 w-full animate-[progress_1.5s_ease-in-out_forwards]"></div>
+        </div>
+        <p class="text-xs text-matrix-500 animate-blink">Loading modules...</p>
+        
+        <style>
+            @keyframes progress {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(0); }
+            }
+        </style>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- 1. MATRIX DIGITAL RAIN BACKGROUND ---
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%\"'#&_(),.;:?!\\|{}<>[]^~";
+        const matrixChars = letters.split("");
+
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        
+        const drops = [];
+        for (let x = 0; x < columns; x++) {
+            drops[x] = 1;
+        }
+
+        function drawMatrix() {
+            // Fading effect
+            ctx.fillStyle = "rgba(10, 10, 10, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#008f11"; // Text color
+            ctx.font = fontSize + "px 'Fira Code', monospace";
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                
+                // Highlight head of the drop
+                if (Math.random() > 0.95) {
+                    ctx.fillStyle = "#00ff41";
+                } else {
+                    ctx.fillStyle = "#008f11";
+                }
+
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 33);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // --- 2. BOOT SEQUENCE TYPING EFFECT ---
+        const bootText = [
+            "Initiating connection to LAB_SERVER_KPT0502328...",
+            "Establishing secure tunnel...",
+            "Verifying host keys... OK.",
+            "Loading syllabus matrix... OK.",
+            "WARNING: Restricted Area. Authorized personnel only.",
+            "Compiling ethical agreement protocol..."
+        ];
+
+        const bootDiv = document.getElementById('boot-sequence');
+        const formContainer = document.getElementById('nda-form-container');
+        
+        async function typeWriter(lines, element, delay = 30) {
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const p = document.createElement('p');
+                p.className = 'mb-1';
+                element.appendChild(p);
+                
+                let currentText = "> ";
+                p.innerHTML = currentText;
+
+                for (let j = 0; j < line.length; j++) {
+                    currentText += line[j];
+                    p.innerHTML = currentText;
+                    // Auto scroll to bottom
+                    const termBody = document.getElementById('terminal-body');
+                    termBody.scrollTop = termBody.scrollHeight;
+                    
+                    await new Promise(r => setTimeout(r, delay));
+                }
+                await new Promise(r => setTimeout(r, 200)); // Pause between lines
+            }
+        }
+
+        // Start Boot Sequence on Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await typeWriter(bootText, bootDiv, 15); // Fast typing
+            await new Promise(r => setTimeout(r, 500));
+            
+            // Reveal Form
+            formContainer.classList.remove('hidden');
+            // Trigger reflow
+            void formContainer.offsetWidth;
+            formContainer.classList.remove('opacity-0');
+            formContainer.classList.add('opacity-100');
+            
+            // Auto focus on name
+            setTimeout(() => {
+                document.getElementById('input-nama').focus();
+            }, 1000);
+        });
+
+        // --- 3. FORM VALIDATION LOGIC ---
+        const inputNama = document.getElementById('input-nama');
+        const inputNim = document.getElementById('input-nim');
+        const checkboxes = document.querySelectorAll('.rule-cb');
+        const btnSubmit = document.getElementById('btn-submit');
+        const statusMsg = document.getElementById('status-msg');
+
+        function checkValidation() {
+            const hasName = inputNama.value.trim().length > 2;
+            const hasNim = inputNim.value.trim().length > 5;
+            
+            let allChecked = true;
+            checkboxes.forEach(cb => {
+                if (!cb.checked) allChecked = false;
+            });
+
+            if (hasName && hasNim && allChecked) {
+                btnSubmit.disabled = false;
+                statusMsg.classList.add('hidden');
+            } else {
+                btnSubmit.disabled = true;
+                statusMsg.classList.remove('hidden');
+                
+                // Specific error logic
+                if(!hasName || !hasNim) {
+                    statusMsg.innerHTML = '<i class="fas fa-lock text-alert mr-2 animate-pulse"></i> Identitas tidak valid.';
+                } else if (!allChecked) {
+                    statusMsg.innerHTML = '<i class="fas fa-lock text-alert mr-2 animate-pulse"></i> Pakta integritas belum disetujui sepenuhnya.';
+                }
+            }
+        }
+
+        // Add Listeners
+        inputNama.addEventListener('input', checkValidation);
+        inputNim.addEventListener('input', checkValidation);
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', checkValidation);
+        });
+
+        // --- 4. SUBMIT ACTION ---
+        btnSubmit.addEventListener('click', () => {
+            // 1. Play some glitch effect on terminal
+            document.querySelector('.terminal-box').classList.add('animate-glitch');
+            document.getElementById('main-cursor').classList.add('hidden');
+            
+            // 2. Prepare user name
+            const namaVal = inputNama.value.trim();
+            const firstName = namaVal.split(' ')[0];
+            document.getElementById('granted-name').textContent = firstName;
+
+            // 3. Show overlay after short delay
+            setTimeout(() => {
+                const overlay = document.getElementById('access-granted');
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                
+                // 4. Simulate redirection to the modules index after sequence
+                setTimeout(() => {
+                    // Redirect to Arsenal (Module list)
+                    // In a real app: window.location.href = 'daftar_modul.html';
+                    window.location.href = 'index-ethical-hacking-2.html';
+                    // alert("Simulasi Berhasil: Akan diarahkan ke Halaman Daftar Modul (Arsenal).");
+                }, 2000);
+
+            }, 800);
+        });
+
+    </script>
+</body>
+</html>
