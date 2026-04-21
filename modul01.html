@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 1: Lingkungan Virtualisasi & Instalasi OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 700: '#4338ca', 900: '#312e81' },
+                        vm: { hw: '#1e293b', host: '#334155', hyp: '#4f46e5', guest1: '#0ea5e9', guest2: '#10b981' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Minimal embedded CSS for strict chart container control */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .step-active {
+            border-left-color: #6366f1 !important;
+            background-color: #eef2ff !important;
+        }
+        
+        .accordion-content {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.expanded {
+            max-height: 500px;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Indigo (Brand/Interactive), Slate (Background/Text), Sky Blue & Emerald (VM Elements) -->
+    <!-- Application Structure Plan: SPA ini dirancang dengan struktur 'Interactive Learning Path'. Materi Modul 1 (Virtualisasi) sangat konseptual dan prosedural. Struktur yang dirancang meliputi: 1) Header & Pengantar, 2) Visualisasi Arsitektur (Membandingkan Bare-Metal vs Virtualisasi dan hierarki Hypervisor), 3) Simulator Langkah Kerja (Timeline interaktif untuk memecah proses instalasi panjang menjadi tahapan klikabel), dan 4) Troubleshooting (Sistem akordion interaktif). Pendekatan ini mengubah teks blok panjang menjadi alur eksplorasi yang ringan dan fokus pada pemahaman visual. -->
+    <!-- Visualization & Content Choices: 1. Efisiensi Bare-Metal vs Virtualisasi -> Goal: Compare -> Viz: Stacked Bar Chart (Chart.js) -> Justification: Menunjukkan dengan jelas bagaimana utilitas resource terbuang pada bare-metal vs terdistribusi pada VM. 2. Arsitektur Hypervisor -> Goal: Organize/Inform -> Viz: Nested HTML/Tailwind Flexbox Diagram -> Justification: Mengubah diagram ASCII di dokumen asli menjadi representasi visual berlapis (Hardware -> Host -> Hypervisor -> Guest) tanpa SVG. 3. Langkah Instalasi -> Goal: Organize/Change -> Viz: Interactive Timeline (Vanilla JS) -> Justification: Menghindari scrolling panjang; pengguna fokus pada satu tahap (misal: Konfigurasi VirtualBox) dalam satu waktu. 4. Troubleshooting -> Goal: Inform -> Viz: Accordion List -> Justification: Informasi disembunyikan sampai dibutuhkan, mengurangi beban kognitif. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-server mr-2"></i> Modul 1 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#konsep" class="hover:text-brand-600 transition-colors">Konsep Dasar</a>
+                    <a href="#arsitektur" class="hover:text-brand-600 transition-colors">Arsitektur</a>
+                    <a href="#instalasi" class="hover:text-brand-600 transition-colors">Panduan Instalasi</a>
+                    <a href="#troubleshooting" class="hover:text-brand-600 transition-colors">Troubleshooting</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-28 pb-16 bg-brand-900 text-white relative overflow-hidden">
+        <!-- Abstract background pattern using pure HTML/CSS -->
+        <div class="absolute inset-0 opacity-10 flex flex-wrap gap-4 p-8 pointer-events-none" aria-hidden="true">
+            <div class="w-32 h-32 border-4 border-white rounded-lg rotate-12"></div>
+            <div class="w-48 h-48 border-4 border-white rounded-full -rotate-12 ml-20 mt-10"></div>
+            <div class="w-24 h-24 border-4 border-white rounded-lg rotate-45 ml-auto mt-20"></div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 1</span>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 leading-tight tracking-tight">Pengenalan Lingkungan Virtualisasi & Instalasi OS</h1>
+            <p class="text-lg md:text-xl text-brand-100 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Pahami arsitektur abstraksi perangkat keras, bedakan tipe Hypervisor, dan bangun laboratorium virtual pertama Anda menggunakan Oracle VM VirtualBox dan Ubuntu 22.04 LTS.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="#instalasi" class="inline-block bg-white text-brand-900 font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-50 transition-transform transform hover:-translate-y-1">
+                    <i class="fas fa-play mr-2"></i> Mulai Simulasi Instalasi
+                </a>
+                <a href="#konsep" class="inline-block bg-brand-800 text-white border border-brand-700 font-semibold px-6 py-3 rounded-lg shadow hover:bg-brand-700 transition-colors">
+                    Pelajari Teori
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- Konsep Dasar & Efisiensi -->
+        <section id="konsep" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-slate-800">Mengapa Virtualisasi?</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Dalam paradigma <em>bare-metal</em>, 90% kapasitas server seringkali terbuang. Virtualisasi menciptakan ilusi perangkat keras untuk efisiensi maksimal.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-brand-500">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Masalah Bare-Metal (Tradisional)</h3>
+                        <p class="text-sm text-slate-600">Sebuah OS dipasang langsung di atas hardware. Jika server hanya menjalankan satu aplikasi yang memakan 10% prosesor, 90% sisa komputasi terbuang sia-sia (<em>underutilized</em>).</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Solusi Virtualisasi</h3>
+                        <p class="text-sm text-slate-600">Abstraksi logika memisahkan fisik dengan OS. Sebuah <em>Host</em> (Hardware) dipartisi menjadi beberapa "komputer" independen (<em>Virtual Machine / Guest</em>) oleh perangkat lunak menengah yang disebut <strong>Hypervisor</strong>.</p>
+                    </div>
+                    <div class="bg-slate-800 text-white p-6 rounded-2xl shadow-sm">
+                        <h3 class="text-lg font-bold mb-2"><i class="fas fa-camera mr-2"></i> Keunggulan Snapshot</h3>
+                        <p class="text-sm text-slate-300">Mengambil "foto" kondisi VM pada satu titik waktu. Jika OS rusak (Kernel Panic), administrator cukup me-<em>restore snapshot</em> untuk kembali normal dalam hitungan detik tanpa instal ulang.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-center font-bold text-slate-700 mb-2">Utilitas Kapasitas Server (Ilustrasi)</h3>
+                    <p class="text-center text-xs text-slate-500 mb-6">Perbandingan penggunaan resource pada server fisik 16GB RAM</p>
+                    <div class="chart-container">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Arsitektur Hypervisor -->
+        <section id="arsitektur" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-extrabold text-slate-800">Taksonomi & Arsitektur Hypervisor</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Memahami perbedaan arsitektural antara Hypervisor Tipe 1 (Data Center) dan Tipe 2 (Laboratorium/Edukasi).</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+                <!-- Tipe 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-indigo-100 text-brand-600 rounded-xl flex items-center justify-center text-2xl font-bold">1</div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Hypervisor Tipe 1 (Bare-Metal)</h3>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Standar Industri / Cloud</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Diinstal langsung di atas hardware tanpa OS perantara. Akses langsung ke hardware memberikan latensi rendah dan efisiensi maksimum.</p>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 text-sm font-mono text-slate-600 text-center">
+                        Contoh: VMware ESXi, Proxmox VE
+                    </div>
+                </div>
+
+                <!-- Tipe 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-2xl font-bold">2</div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Hypervisor Tipe 2 (Hosted)</h3>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Edukasi / Development</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Dijalankan sebagai aplikasi di dalam OS Host (misal Windows 11). Permintaan hardware dari VM diterjemahkan oleh OS Host terlebih dahulu.</p>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 text-sm font-mono text-slate-600 text-center">
+                        Contoh: Oracle VirtualBox, VMware Workstation
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualisasi Diagram (No SVG) -->
+            <div class="bg-white p-8 rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                <h3 class="text-center font-bold text-slate-800 mb-8 text-xl">Diagram Konseptual: Arsitektur Hypervisor Tipe 2 (VirtualBox)</h3>
+                
+                <div class="max-w-3xl mx-auto flex flex-col-reverse gap-2 font-mono text-sm">
+                    <!-- Layer 0 -->
+                    <div class="bg-vm-hw text-white p-4 rounded-lg shadow text-center relative hover:scale-[1.02] transition-transform">
+                        <div class="font-bold mb-1">Lapis 0: HARDWARE FISIK</div>
+                        <div class="text-xs text-slate-300">Motherboard, Intel Core i7, RAM 16GB, SSD 512GB</div>
+                    </div>
+                    
+                    <!-- Arrow -->
+                    <div class="text-center text-slate-400 text-xl py-1"><i class="fas fa-arrow-up"></i></div>
+
+                    <!-- Layer 1 -->
+                    <div class="bg-vm-host text-white p-4 rounded-lg shadow text-center relative hover:scale-[1.02] transition-transform">
+                        <div class="font-bold mb-1">Lapis 1: HOST OPERATING SYSTEM</div>
+                        <div class="text-xs text-slate-300">OS Utama (misal: Windows 11 atau macOS)</div>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="text-center text-slate-400 text-xl py-1"><i class="fas fa-arrow-up"></i></div>
+
+                    <!-- Layer 2 -->
+                    <div class="bg-vm-hyp text-white p-4 rounded-lg shadow text-center relative border-2 border-brand-300 hover:scale-[1.02] transition-transform">
+                        <div class="font-bold mb-1">Lapis 2: HYPERVISOR (Tipe 2)</div>
+                        <div class="text-xs text-indigo-200">Oracle VM VirtualBox (Manajemen Isolasi VM)</div>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="text-center text-slate-400 text-xl py-1"><i class="fas fa-arrow-up"></i></div>
+
+                    <!-- Layer 3 (VMs) -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <div class="bg-vm-guest1 text-white p-4 rounded-lg shadow text-center w-full sm:w-1/2 hover:scale-[1.02] transition-transform">
+                            <div class="font-bold mb-1">Virtual Machine 1 (Guest)</div>
+                            <div class="text-xs bg-black/20 p-2 rounded mt-2 text-left">
+                                <div><i class="fas fa-window-maximize mr-1"></i> App: Browser</div>
+                                <div><i class="fab fa-ubuntu mr-1"></i> OS: Ubuntu 22.04</div>
+                                <div class="mt-1 text-sky-200">vCPU: 2 | vRAM: 4GB</div>
+                            </div>
+                        </div>
+                        <div class="bg-vm-guest2 text-white p-4 rounded-lg shadow text-center w-full sm:w-1/2 hover:scale-[1.02] transition-transform">
+                            <div class="font-bold mb-1">Virtual Machine 2 (Guest)</div>
+                            <div class="text-xs bg-black/20 p-2 rounded mt-2 text-left">
+                                <div><i class="fas fa-server mr-1"></i> App: Apache Web</div>
+                                <div><i class="fab fa-linux mr-1"></i> OS: CentOS 9</div>
+                                <div class="mt-1 text-emerald-200">vCPU: 1 | vRAM: 2GB</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2 font-sans font-semibold text-brand-700">Lapis 3: LINGKUNGAN VIRTUAL (GUEST)</div>
+                </div>
+                
+                <p class="text-center text-sm text-slate-500 mt-8 italic">
+                    "Jika Ubuntu di Lapisan 3 mengalami System Crash, Windows di Lapisan 1 sama sekali tidak akan terpengaruh karena adanya isolasi ketat."
+                </p>
+            </div>
+        </section>
+
+        <!-- Interactive Installation Timeline -->
+        <section id="instalasi" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-extrabold text-slate-800">Panduan Instalasi Interaktif</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Ikuti tahapan logis dari pembuatan mesin virtual hingga instalasi Ubuntu 22.04 LTS. Klik setiap tahapan di menu sebelah kiri.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <!-- Sidebar Menu -->
+                <div class="w-full md:w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col" id="timeline-menu">
+                    <!-- Populated by JS -->
+                </div>
+                
+                <!-- Content Area -->
+                <div class="w-full md:w-2/3 p-6 md:p-10 min-h-[450px] flex flex-col" id="timeline-content">
+                    <div class="flex-grow flex flex-col items-center justify-center text-slate-400 text-center">
+                        <i class="fas fa-hand-pointer text-5xl mb-4 text-brand-300"></i>
+                        <p class="text-lg">Silakan pilih tahapan di sebelah kiri<br>untuk melihat instruksi instalasi.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Troubleshooting Accordion -->
+        <section id="troubleshooting" class="scroll-mt-24 mb-20">
+            <div class="bg-brand-900 rounded-2xl shadow-lg p-8 md:p-12 text-white">
+                <div class="mb-8 md:flex justify-between items-end">
+                    <div>
+                        <h2 class="text-3xl font-extrabold mb-2 text-brand-100"><i class="fas fa-wrench mr-2"></i> Bantuan Masalah (Troubleshooting)</h2>
+                        <p class="text-brand-200 text-sm">Kendala umum yang sering ditemui saat praktikum Modul 1 dan solusinya.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4" id="accordion-container">
+                    <!-- Accordion Item 1 -->
+                    <div class="bg-brand-800 rounded-xl border border-brand-700 overflow-hidden">
+                        <button class="w-full px-6 py-4 text-left font-bold flex justify-between items-center hover:bg-brand-700 transition-colors focus:outline-none" onclick="toggleAccordion('acc-1')">
+                            <span>Layar VM tetap hitam pekat (Blank Screen) saat di-Start</span>
+                            <i class="fas fa-chevron-down transition-transform" id="icon-acc-1"></i>
+                        </button>
+                        <div id="acc-1" class="accordion-content bg-brand-900 px-6">
+                            <p class="py-4 text-sm text-brand-100 border-t border-brand-700 leading-relaxed">
+                                <strong>Penyebab & Solusi:</strong> Biasanya karena bug alokasi grafis. Matikan VM. Masuk ke VirtualBox Manager -> <strong>Settings</strong> -> <strong>Display</strong>. Ubah parameter <em>Graphics Controller</em> menjadi <strong>VMSVGA</strong> dan pastikan untuk menonaktifkan (uncheck) opsi <em>Enable 3D Acceleration</em>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Accordion Item 2 -->
+                    <div class="bg-brand-800 rounded-xl border border-brand-700 overflow-hidden">
+                        <button class="w-full px-6 py-4 text-left font-bold flex justify-between items-center hover:bg-brand-700 transition-colors focus:outline-none" onclick="toggleAccordion('acc-2')">
+                            <span>Opsi "Ubuntu (64-bit)" tidak muncul, hanya ada versi 32-bit</span>
+                            <i class="fas fa-chevron-down transition-transform" id="icon-acc-2"></i>
+                        </button>
+                        <div id="acc-2" class="accordion-content bg-brand-900 px-6">
+                            <p class="py-4 text-sm text-brand-100 border-t border-brand-700 leading-relaxed">
+                                <strong>Penyebab & Solusi:</strong> Fitur virtualisasi perangkat keras belum diaktifkan di tingkat motherboard PC Host Anda. Lakukan <em>Restart</em> PC Anda, masuk ke BIOS/UEFI, cari menu Configuration/Advanced, dan aktifkan <strong>Intel Virtualization Technology (VT-x)</strong> atau <strong>AMD-V (SVM Mode)</strong>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Accordion Item 3 -->
+                    <div class="bg-brand-800 rounded-xl border border-brand-700 overflow-hidden">
+                        <button class="w-full px-6 py-4 text-left font-bold flex justify-between items-center hover:bg-brand-700 transition-colors focus:outline-none" onclick="toggleAccordion('acc-3')">
+                            <span>Instalasi gagal / Crash dengan pesan "Kernel Panic - Out of memory"</span>
+                            <i class="fas fa-chevron-down transition-transform" id="icon-acc-3"></i>
+                        </button>
+                        <div id="acc-3" class="accordion-content bg-brand-900 px-6">
+                            <p class="py-4 text-sm text-brand-100 border-t border-brand-700 leading-relaxed">
+                                <strong>Penyebab & Solusi:</strong> Alokasi "Base Memory" (RAM) yang Anda berikan pada VM terlalu kecil (di bawah 2 GB). Ubuntu 22.04 membutuhkan memori ekstra saat proses ekstraksi <em>installer</em>. Matikan paksa VM, naikkan alokasi RAM minimal ke <strong>2048 MB</strong>, lalu ulangi proses instalasi.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-1">Disusun untuk Praktikum Sistem Operasi Berbasis OBE.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // ==========================================
+        // 1. DATA STORAGE & STATE MANAGEMENT
+        // ==========================================
+        
+        // Data for Installation Timeline
+        const installationSteps = [
+            {
+                id: 'tahap-a',
+                title: 'Persiapan BIOS/UEFI',
+                icon: 'fa-microchip',
+                subtitle: 'Aktivasi Virtualisasi Hardware',
+                content: `
+                    <p class="mb-3 text-slate-700 leading-relaxed">Agar VirtualBox dapat mengizinkan OS Linux berjalan dengan arsitektur 64-bit secara optimal, fitur virtualisasi di processor harus AKTIF.</p>
+                    <ol class="list-decimal list-outside ml-5 space-y-2 text-sm text-slate-600 font-medium">
+                        <li>Restart komputer Host Anda.</li>
+                        <li>Masuk ke BIOS/UEFI (tahan tombol F2, F10, DEL, atau ESC saat booting).</li>
+                        <li>Cari menu <strong class="text-slate-800">Configuration</strong>, <strong class="text-slate-800">Security</strong>, atau <strong class="text-slate-800">Advanced</strong>.</li>
+                        <li>Ubah status <strong class="text-brand-600">Intel VT-x</strong> atau <strong class="text-brand-600">AMD-V (SVM Mode)</strong> menjadi <strong class="text-emerald-600 bg-emerald-50 px-1 rounded">Enabled</strong>.</li>
+                        <li>Simpan konfigurasi dan restart (biasanya F10).</li>
+                    </ol>
+                `
+            },
+            {
+                id: 'tahap-b',
+                title: 'Instalasi VirtualBox',
+                icon: 'fa-download',
+                subtitle: 'Persiapan Hypervisor Tipe 2',
+                content: `
+                    <p class="mb-3 text-slate-700 leading-relaxed">Memasang aplikasi Oracle VM VirtualBox di OS Host (Windows/macOS).</p>
+                    <ol class="list-decimal list-outside ml-5 space-y-2 text-sm text-slate-600">
+                        <li>Unduh penginstal versi Windows Hosts dari <code class="bg-slate-100 px-1 rounded text-pink-600">virtualbox.org</code>.</li>
+                        <li>Jalankan file <code class="bg-slate-100 px-1 rounded text-pink-600">.exe</code>. Biarkan seluruh opsi jaringan & USB tercentang <em>default</em>.</li>
+                        <li>Abaikan peringatan terputusnya jaringan sementara, klik <strong>Yes</strong> lalu <strong>Install</strong>.</li>
+                        <li>Buka aplikasi Oracle VM VirtualBox Manager.</li>
+                    </ol>
+                `
+            },
+            {
+                id: 'tahap-c',
+                title: 'Profil Mesin Virtual',
+                icon: 'fa-box',
+                subtitle: 'Alokasi vCPU, vRAM, dan vDisk',
+                content: `
+                    <p class="mb-3 text-slate-700 leading-relaxed">Membuat "wadah" komputer virtual sebelum OS diinstal.</p>
+                    <ul class="list-disc list-outside ml-5 space-y-3 text-sm text-slate-600">
+                        <li><strong>Identitas:</strong> Klik <em>New</em>. Nama: <code class="bg-slate-100 px-1 text-pink-600 font-mono">NIM_Ubuntu_Desktop</code>. Type: Linux. Version: Ubuntu (64-bit).</li>
+                        <li><strong>Hardware:</strong> Alokasikan Base Memory minimal <strong class="text-brand-600">2048 MB</strong> (JANGAN lewati batas merah!). Processors: <strong class="text-brand-600">2 CPU</strong>.</li>
+                        <li><strong>Virtual Hard Disk:</strong> Pilih <em>Create a Virtual Hard Disk Now</em>. Tentukan ukuran <strong class="text-brand-600">25.00 GB</strong>. Klik Finish.</li>
+                    </ul>
+                `
+            },
+            {
+                id: 'tahap-d',
+                title: 'Mount ISO & Booting',
+                icon: 'fa-compact-disc',
+                subtitle: 'Memasukkan media instalasi Linux',
+                content: `
+                    <p class="mb-3 text-slate-700 leading-relaxed">Menghubungkan file ISO ke CD-ROM Virtual.</p>
+                    <ol class="list-decimal list-outside ml-5 space-y-2 text-sm text-slate-600">
+                        <li>Klik VM Anda, lalu klik ikon roda gigi <strong>Settings</strong>.</li>
+                        <li>Masuk ke menu <strong>Storage</strong>. Klik ikon CD bertuliskan <em>Empty</em>.</li>
+                        <li>Di panel Attributes (kanan), klik ikon CD kecil -> <strong>Choose a disk file...</strong></li>
+                        <li>Pilih file ISO Ubuntu 22.04 LTS. Klik OK.</li>
+                        <li>Klik panah hijau <strong>Start</strong> untuk menyalakan VM.</li>
+                    </ol>
+                `
+            },
+            {
+                id: 'tahap-e',
+                title: 'Instalasi Ubuntu (Ubiquity)',
+                icon: 'fa-ubuntu',
+                iconClass: 'fab',
+                subtitle: 'Proses format disk dan pembuatan user',
+                content: `
+                    <p class="mb-3 text-slate-700 leading-relaxed">Instalasi OS di dalam mesin virtual yang terisolasi.</p>
+                    <ol class="list-decimal list-outside ml-5 space-y-2 text-sm text-slate-600">
+                        <li>Layar Welcome: Pilih English -> <strong>Install Ubuntu</strong>.</li>
+                        <li>Updates: Pilih <strong>Normal Installation</strong>.</li>
+                        <li>Partisi: Pilih <strong class="text-red-600">Erase disk and install Ubuntu</strong> (Aman, hanya menghapus disk virtual 25GB, bukan PC Anda).</li>
+                        <li>Pembuatan Akun: Masukkan Username dan <strong>Password yang kuat</strong>. Wajib diingat untuk akses root/sudo.</li>
+                        <li>Tunggu hingga selesai, lalu klik <strong>Restart Now</strong>.</li>
+                    </ol>
+                `
+            },
+            {
+                id: 'tahap-f',
+                title: 'Pembuatan Snapshot Emas',
+                icon: 'fa-camera',
+                subtitle: 'Merekam state awal yang bersih',
+                content: `
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded-r text-sm text-blue-800">
+                        Langkah ini adalah penyelamat hidup Anda di laboratorium.
+                    </div>
+                    <ol class="list-decimal list-outside ml-5 space-y-2 text-sm text-slate-600">
+                        <li>Matikan VM secara normal (Power Off).</li>
+                        <li>Di VirtualBox Manager, klik menu <strong>Snapshots</strong> di sebelah nama VM.</li>
+                        <li>Klik ikon kamera <strong>Take</strong>.</li>
+                        <li>Beri nama <code class="bg-slate-100 px-1 font-mono font-bold">Instalasi Bersih Awal</code>. Klik OK.</li>
+                        <li>Kapanpun VM rusak, Anda cukup klik <strong>Restore</strong> untuk kembali ke titik ini.</li>
+                    </ol>
+                `
+            }
+        ];
+
+        // ==========================================
+        // 2. TIMELINE/TAB INITIALIZATION
+        // ==========================================
+        function initTimeline() {
+            const menuEl = document.getElementById('timeline-menu');
+            const contentEl = document.getElementById('timeline-content');
+            let currentActiveBtn = null;
+
+            installationSteps.forEach((step, index) => {
+                const btn = document.createElement('button');
+                const iconPrefix = step.iconClass || 'fas';
+                
+                btn.className = `w-full text-left px-6 py-4 border-l-4 border-transparent hover:bg-slate-100 transition-colors focus:outline-none flex items-center gap-4 ${index !== installationSteps.length -1 ? 'border-b border-slate-100' : ''}`;
+                btn.innerHTML = `
+                    <div class="w-8 flex justify-center text-slate-400 group-hover:text-brand-500"><i class="${iconPrefix} ${step.icon} text-xl"></i></div>
+                    <div>
+                        <div class="font-bold text-slate-700">${step.title}</div>
+                        <div class="text-xs text-slate-500">${step.subtitle}</div>
+                    </div>
+                `;
+                
+                btn.addEventListener('click', () => {
+                    // Update active state
+                    if (currentActiveBtn) {
+                        currentActiveBtn.classList.remove('step-active');
+                        currentActiveBtn.querySelector('div.w-8').classList.remove('text-brand-600');
+                        currentActiveBtn.querySelector('div.w-8').classList.add('text-slate-400');
+                    }
+                    btn.classList.add('step-active');
+                    btn.querySelector('div.w-8').classList.remove('text-slate-400');
+                    btn.querySelector('div.w-8').classList.add('text-brand-600');
+                    currentActiveBtn = btn;
+                    
+                    // Update content
+                    contentEl.innerHTML = `
+                        <div class="flex items-center gap-4 border-b border-slate-200 pb-4 mb-6">
+                            <div class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-2xl shadow-sm border border-brand-200">
+                                <i class="${iconPrefix} ${step.icon}"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-extrabold text-slate-800">${step.title}</h3>
+                                <p class="text-sm font-semibold text-brand-600 uppercase tracking-wider">${step.subtitle}</p>
+                            </div>
+                        </div>
+                        <div class="flex-grow animate-[fadeIn_0.3s_ease-in-out]">
+                            ${step.content}
+                        </div>
+                    `;
+                });
+                
+                menuEl.appendChild(btn);
+            });
+            
+            // Activate first step by default
+            if(menuEl.firstChild) {
+                menuEl.firstChild.click();
+            }
+        }
+
+        // ==========================================
+        // 3. ACCORDION LOGIC
+        // ==========================================
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                // Optional: Close others
+                // document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('expanded'));
+                // document.querySelectorAll('[id^="icon-acc-"]').forEach(i => i.style.transform = 'rotate(0deg)');
+                
+                content.classList.add('expanded');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // ==========================================
+        // 4. CHART.JS INITIALIZATION
+        // ==========================================
+        function initCharts() {
+            const ctxEff = document.getElementById('efficiencyChart').getContext('2d');
+            new Chart(ctxEff, {
+                type: 'bar',
+                data: {
+                    labels: ['Sistem Bare-Metal', 'Sistem Virtualisasi (VM)'],
+                    datasets: [
+                        {
+                            label: 'Kapasitas Terpakai (%)',
+                            data: [10, 85], // 10% used in bare-metal, 85% used in Virtualization (multiple VMs)
+                            backgroundColor: '#10b981', // Emerald
+                            borderColor: '#059669',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Kapasitas Terbuang/Idle (%)',
+                            data: [90, 15],
+                            backgroundColor: '#e2e8f0', // Slate 200
+                            borderColor: '#cbd5e1',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Horizontal bar for easier reading
+                    scales: {
+                        x: { stacked: true, max: 100, ticks: { callback: function(value) { return value + '%' } } },
+                        y: { stacked: true }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.dataset.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        },
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Add simple fadeIn animation for timeline content transitions
+        document.head.insertAdjacentHTML("beforeend", `<style>@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }</style>`);
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initTimeline();
+            initCharts();
+        });
+    </script>
+</body>
+</html>

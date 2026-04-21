@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 5: Manajemen Proses & Monitoring Kinerja</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#f43f5e', 700: '#be123c', 900: '#881337' },
+                        htop: { bg: '#0f172a', text: '#38bdf8', cpu: '#4ade80', ram: '#f59e0b', load: '#f43f5e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CRITICAL: Responsive Chart Container constraints */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Wider for time-series data */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Typography & layout consistency */
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-600 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .content-section code {
+            @apply bg-slate-100 text-brand-700 px-2 py-1 rounded-md font-mono text-sm border border-slate-200 mx-1 font-semibold;
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Tree hierarchy styling (No SVG) */
+        .tree-node {
+            @apply relative pl-6 border-l-2 border-slate-300 pb-4;
+        }
+        .tree-node::before {
+            content: "";
+            @apply absolute left-0 top-4 w-4 border-b-2 border-slate-300;
+        }
+        .tree-last {
+            @apply border-l-0;
+        }
+        .tree-last::before {
+            @apply border-l-2;
+            height: 1.2rem;
+            top: 0;
+            border-bottom-left-radius: 0.5rem;
+        }
+        
+        /* Signal animation */
+        .signal-flash {
+            animation: flashRed 0.5s ease-out;
+        }
+        @keyframes flashRed {
+            0% { background-color: #fca5a5; transform: scale(1.02); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Rose/Crimson (Brand/Danger for Killing processes), Slate (Background), Emerald/Amber (Monitoring) -->
+    <!-- Application Structure Plan: SPA ini dirancang menggunakan konsep 'System Dashboard & Control Center'. Modul 5 berfokus pada sisi dinamis OS (proses yang berjalan, memori, CPU, dan terminasi proses). Struktur terdiri dari: 1) Header & Pengantar, 2) Teori Proses & Process Tree (Visualisasi hierarki PID menggunakan HTML murni), 3) Live Monitoring Simulator (Grafik dinamis Chart.js yang menyimulasikan htop/vmstat), 4) Interactive Job Control & Signal Dispatcher (Alat interaktif tempat pengguna dapat menjeda, melempar ke background, atau membunuh simulasi proses menggunakan Sinyal IPC), dan 5) Evaluasi Analitik (Zombie & Load Average). Pendekatan ini mengubah teks teori 'kill' dan 'htop' menjadi pengalaman simulasi interaktif yang kuat. -->
+    <!-- Visualization & Content Choices: 1. Program vs Process -> Goal: Inform/Compare -> Viz: Side-by-side HTML Cards dengan Unicode -> Justification: Memperjelas status statis vs dinamis. 2. Process Tree -> Goal: Organize/Relationships -> Viz: Nested HTML div (Tree-node CSS) -> Justification: Menunjukkan silsilah Parent/Child (PID 1) tanpa menggunakan Mermaid/SVG. 3. htop/vmstat Monitor -> Goal: Change/Inform -> Viz: Dynamic Line Chart (Chart.js) -> Justification: Menyimulasikan fluktuasi kinerja CPU dan RAM secara real-time seperti alat monitoring aslinya. 4. Signal Dispatcher -> Goal: Engagement/Change -> Viz: Interactive List & Buttons (Vanilla JS) -> Justification: Mempraktikkan efek SIGTERM (15) vs SIGKILL (9) dan status Suspended tanpa merusak OS host. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-microchip mr-2"></i> Modul 5 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#konsep" class="hover:text-brand-600 transition-colors">Program vs Proses</a>
+                    <a href="#monitoring" class="hover:text-brand-600 transition-colors">Live Monitoring</a>
+                    <a href="#signals" class="hover:text-brand-600 transition-colors">Sinyal & Job Control</a>
+                    <a href="#evaluasi" class="hover:text-brand-600 transition-colors">Analisis Evaluasi</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <!-- Abstract server blinkers -->
+        <div class="absolute inset-0 opacity-20 flex flex-wrap gap-2 p-8 pointer-events-none justify-center" aria-hidden="true">
+            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div><div class="w-2 h-2 rounded-full bg-slate-700"></div><div class="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse_1.5s_infinite]"></div>
+            <div class="w-full"></div>
+            <div class="w-2 h-2 rounded-full bg-red-500 animate-[pulse_0.5s_infinite]"></div><div class="w-2 h-2 rounded-full bg-emerald-500"></div><div class="w-2 h-2 rounded-full bg-slate-700"></div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 5</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Manajemen Proses & Monitoring Kinerja</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Sistem Operasi adalah entitas hidup. Pantau detak jantung CPU Anda, atur jadwal program di latar belakang, dan pelajari cara mengeksekusi mati program yang membangkang dengan sinyal IPC.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="#monitoring" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                    <i class="fas fa-chart-line mr-2"></i> Buka Dashboard Htop
+                </a>
+                <a href="#signals" class="inline-block bg-slate-800 text-white border border-slate-700 font-semibold px-6 py-3 rounded-lg shadow hover:bg-slate-700 transition-colors">
+                    Latihan Job Control
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Konsep Dasar & Process Tree -->
+        <section id="konsep" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Anatomi Proses di Linux</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sebuah aplikasi hanya berupa barisan kode mati di hardisk sampai ia dipanggil oleh OS. Pahami perbedaan mendasarnya dan hierarki silsilah yang dibentuk.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12 items-start">
+                
+                <!-- Program vs Process -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-slate-400">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-2xl">💾</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-xl">Program (Statis)</h3>
+                        </div>
+                        <p class="text-sm !mb-0 text-slate-600">Baris kode biner yang tersimpan secara pasif di dalam disk (Hardisk/SSD). Program tidak mengonsumsi resource prosesor atau RAM aktif. (Contoh: file <code>/usr/bin/nginx</code>).</p>
+                    </div>
+                    
+                    <div class="text-center text-slate-400 font-bold"><i class="fas fa-arrow-down mr-2"></i>Dimuat ke Memori (Dieksekusi)</div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500 transform scale-[1.02]">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-2xl">⚡</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-xl">Proses (Dinamis)</h3>
+                        </div>
+                        <p class="text-sm !mb-0 text-slate-600">Entitas yang hidup. Program yang sedang dimuat di RAM dan diinstruksikan kepada CPU. Setiap proses diberikan nomor identitas unik yang disebut <strong>PID (Process ID)</strong>.</p>
+                    </div>
+                </div>
+
+                <!-- Process Tree -->
+                <div class="bg-slate-800 p-8 rounded-2xl shadow-md text-slate-300 font-mono text-sm overflow-x-auto">
+                    <h4 class="text-white font-sans font-bold text-lg mb-4 mt-0"><i class="fas fa-sitemap mr-2 text-brand-400"></i> Process Tree (Silsilah Parent-Child)</h4>
+                    <p class="text-xs text-slate-400 font-sans mb-6">Linux memulai segalanya dari satu leluhur. Jika proses Parent dibunuh, proses Child juga akan terpengaruh.</p>
+                    
+                    <!-- HTML Based Tree -->
+                    <div class="ml-2">
+                        <div class="font-bold text-emerald-400 mb-2">▶ systemd (PID 1) - The Mother of All Processes</div>
+                        <div class="tree-node border-slate-600">
+                            <div class="mb-2">▶ sshd (PID 850) <span class="text-xs text-slate-500">// Daemon SSH</span></div>
+                            <div class="tree-node border-slate-600">
+                                <div class="mb-2">▶ sshd (PID 1400) <span class="text-xs text-slate-500">// Sesi Budi</span></div>
+                                <div class="tree-node border-slate-600 tree-last">
+                                    <div class="mb-2 text-blue-300">▶ bash (PID 1401) <span class="text-xs text-slate-500">// Terminal Budi</span></div>
+                                    <div class="tree-node border-slate-600 tree-last">
+                                        <div class="text-amber-300">▶ ps aux (PID 1450) <span class="text-xs text-slate-500">// Perintah saat ini</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tree-node border-slate-600 tree-last">
+                            <div class="text-slate-300">▶ nginx (PID 900) <span class="text-xs text-slate-500">// Web Server</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Live Monitoring Simulator -->
+        <section id="monitoring" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Dashboard Monitoring (htop / vmstat)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Perintah <code>ps</code> hanya memberikan <em>snapshot</em> statis. Administrator menggunakan <code>htop</code> untuk mengobservasi beban sistem secara <em>real-time</em>. Perhatikan grafik simulasi <em>live</em> di bawah ini.</p>
+            </div>
+
+            <div class="bg-htop-bg p-6 md:p-8 rounded-2xl shadow-xl border border-slate-700">
+                <!-- Header Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border-b border-slate-700 pb-6">
+                    <div>
+                        <div class="text-slate-400 text-xs font-bold mb-1 uppercase tracking-wider">CPU Utilization</div>
+                        <div class="flex items-end gap-2">
+                            <div class="text-3xl font-mono text-htop-cpu font-bold" id="cpu-val">12%</div>
+                            <div class="w-full bg-slate-800 h-3 rounded-full mb-1 border border-slate-600 overflow-hidden">
+                                <div class="bg-htop-cpu h-full transition-all duration-500" id="cpu-bar" style="width: 12%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-xs font-bold mb-1 uppercase tracking-wider">Memory (RAM)</div>
+                        <div class="flex items-end gap-2">
+                            <div class="text-3xl font-mono text-htop-ram font-bold" id="ram-val">45%</div>
+                            <div class="w-full bg-slate-800 h-3 rounded-full mb-1 border border-slate-600 overflow-hidden">
+                                <div class="bg-htop-ram h-full transition-all duration-500" id="ram-bar" style="width: 45%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-xs font-bold mb-1 uppercase tracking-wider">Load Average (1, 5, 15 min)</div>
+                        <div class="text-2xl font-mono text-htop-load font-bold" id="load-val">0.12, 0.45, 0.50</div>
+                        <div class="text-xs text-slate-500 mt-1">Sistem Single Core (Batas Aman < 1.00)</div>
+                    </div>
+                </div>
+
+                <!-- Live Chart Container -->
+                <div class="chart-container">
+                    <canvas id="liveMonitorChart"></canvas>
+                </div>
+            </div>
+            <p class="text-xs text-center text-slate-500 mt-4">* Grafik disimulasikan menggunakan JavaScript (Chart.js) untuk memperlihatkan fluktuasi data I/O dan CPU seiring waktu, merepresentasikan output dinamis dari perintah <code>vmstat</code> dan <code>htop</code>.</p>
+        </section>
+
+        <!-- Sinyal IPC & Job Control -->
+        <section id="signals" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Pengendalian & Sinyal Kematian (IPC)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Terminal Linux berjalan sinkron (menunggu perintah selesai). Jika ada proses macet atau berjalan terlalu lama, Anda harus mengendalikannya (Job Control) atau mengirimkan Sinyal Terminasi (Signals).</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Theory & Definitions -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="callout bg-amber-50 border-amber-500 text-amber-900 !mb-0 p-5">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-lg"><i class="fas fa-pause-circle mr-2 text-amber-600"></i>Job Control</h3>
+                        <p class="text-sm !mb-2">Saat Anda menjalankan proses berat (contoh: <code>dd if=/dev/zero...</code>), terminal akan terkunci. Anda tidak bisa mengetik.</p>
+                        <ul class="text-sm list-disc ml-5 mb-0 space-y-1">
+                            <li><strong>Ctrl + Z (Suspend):</strong> Menidurkan paksa proses tersebut. Terminal kembali bisa diketik.</li>
+                            <li><strong>bg:</strong> Membangunkan proses yang tertidur dan melemparnya agar berjalan diam-diam di Latar Belakang (<em>Background</em>).</li>
+                        </ul>
+                    </div>
+
+                    <div class="callout bg-red-50 border-red-500 text-red-900 !mb-0 p-5">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-lg"><i class="fas fa-skull mr-2 text-red-600"></i>Signals (kill)</h3>
+                        <p class="text-sm !mb-2">Perintah <code>kill</code> bukan sekadar membunuh, melainkan mengirim Sinyal Komunikasi Antar-Proses (IPC).</p>
+                        <ul class="text-sm list-disc ml-5 mb-0 space-y-2">
+                            <li><strong>SIGTERM (15):</strong> Kematian Elegan. <em>"Tolong bersihkan memori dan simpan datamu, lalu berhentilah."</em> (Aman untuk database).</li>
+                            <li><strong>SIGKILL (9):</strong> Kematian Mutlak Instan. Dihabisi langsung oleh Kernel. Transaksi terputus seketika. (Digunakan via <code>kill -9 PID</code> jika aplikasi macet total).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Interactive Signal Dispatcher -->
+                <div class="lg:col-span-7 bg-white p-6 md:p-8 rounded-2xl shadow-md border border-slate-200">
+                    <h3 class="!mt-0 mb-4 border-b pb-2 text-xl font-bold flex justify-between items-center">
+                        <span>Simulator Process Manager</span>
+                        <button onclick="resetProcesses()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded font-normal"><i class="fas fa-sync-alt mr-1"></i>Reset</button>
+                    </h3>
+                    
+                    <div class="space-y-3 mb-6" id="process-list">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <div class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">Kirim Sinyal ke Proses Terpilih:</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="dispatchAction('suspend')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold py-2 px-2 rounded shadow-sm transition-colors" title="Ctrl + Z">
+                                Suspend (Ctrl+Z)
+                            </button>
+                            <button onclick="dispatchAction('bg')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-bold py-2 px-2 rounded shadow-sm transition-colors" title="Run in background">
+                                Background (bg)
+                            </button>
+                            <button onclick="dispatchAction('term')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 text-xs font-bold py-2 px-2 rounded shadow-sm transition-colors" title="SIGTERM - Graceful exit">
+                                Kill (15)
+                            </button>
+                            <button onclick="dispatchAction('kill')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-2 rounded shadow-sm transition-colors" title="SIGKILL - Immediate force quit">
+                                Kill -9 (SIGKILL)
+                            </button>
+                        </div>
+                        <div id="action-log" class="mt-4 font-mono text-xs text-slate-500 bg-slate-100 p-2 rounded h-8 flex items-center overflow-hidden">
+                            > Menunggu instruksi administrator...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Analisis Evaluasi Lanjut -->
+        <section id="evaluasi" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Analisis Observasi Kinerja (Evaluasi Lanjut)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Memahami luaran teknis dari alat monitoring untuk menyimpulkan kesehatan infrastruktur server, sesuai standar industri IT.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="text-4xl mb-4 text-purple-500"><i class="fas fa-ghost"></i></div>
+                    <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-lg">Zombie Process (Z)</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Proses yang sudah selesai dieksekusi (mati), tetapi masih memiliki entri di tabel proses karena <em>Parent</em>-nya belum sempat membaca status kematiannya (<em>reaping</em>).<br><br>
+                        <strong>Analisis:</strong> Anda <strong>tidak bisa</strong> membunuh Zombie dengan <code>kill -9</code> karena ia sudah mati. Solusinya: bunuh <em>Parent</em> prosesnya, atau tunggu <code>systemd</code> mengambil alih dan membersihkannya.
+                    </p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="text-4xl mb-4 text-amber-500"><i class="fas fa-weight-hanging"></i></div>
+                    <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-lg">Load Average</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Angka (contoh: <code>3.50, 1.20, 0.50</code>) mewakili rata-rata antrean proses pada CPU dalam 1, 5, dan 15 menit terakhir.<br><br>
+                        <strong>Analisis:</strong> Pada server 1-Core, nilai <strong>1.00 berarti CPU 100% penuh</strong> tanpa antrean. Nilai <code>3.50</code> berarti ada 2.5 proses yang harus antre menunggu giliran. Jika Load > jumlah Core, server dipastikan <em>lagging</em> (kelebihan beban).
+                    </p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="text-4xl mb-4 text-blue-500"><i class="fas fa-hdd"></i></div>
+                    <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-lg">I/O Bottleneck (vmstat)</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Perintah <code>vmstat</code> menyoroti performa input/output memori dan disk. Kolom krusial adalah <code>bi</code> (Blocks In) dan <code>bo</code> (Blocks Out).<br><br>
+                        <strong>Analisis:</strong> Jika nilai <code>bi/bo</code> sangat tinggi secara konstan, sementara CPU bebas (idle), ini mengindikasikan <em>Disk I/O Bottleneck</em>. Sistem melambat bukan karena prosesor, melainkan karena hardisk lambat membaca/menulis data.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // ==========================================
+        // 1. CHART.JS LIVE MONITORING SIMULATION
+        // ==========================================
+        let liveChart;
+        const maxDataPoints = 20;
+        const labels = Array.from({length: maxDataPoints}, (_, i) => '');
+        let cpuData = Array.from({length: maxDataPoints}, () => Math.floor(Math.random() * 20) + 5);
+        let ramData = Array.from({length: maxDataPoints}, () => Math.floor(Math.random() * 5) + 40);
+
+        function initLiveChart() {
+            const ctx = document.getElementById('liveMonitorChart').getContext('2d');
+            liveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'CPU Usage (%)',
+                            data: cpuData,
+                            borderColor: '#4ade80', // Emerald 400
+                            backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'RAM Usage (%)',
+                            data: ramData,
+                            borderColor: '#f59e0b', // Amber 500
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0 // turn off animation for real-time feel
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            min: 0, 
+                            max: 100,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8', font: {family: 'Fira Code'} }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#cbd5e1' } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+                }
+            });
+
+            // Start update loop
+            setInterval(updateLiveData, 1500);
+        }
+
+        function updateLiveData() {
+            // Generate new random data
+            const newCpu = Math.max(0, Math.min(100, cpuData[cpuData.length - 1] + (Math.random() * 30 - 15)));
+            const newRam = Math.max(0, Math.min(100, ramData[ramData.length - 1] + (Math.random() * 10 - 5)));
+            
+            // Shift arrays
+            cpuData.shift(); cpuData.push(newCpu);
+            ramData.shift(); ramData.push(newRam);
+            
+            // Update UI Elements
+            document.getElementById('cpu-val').textContent = Math.round(newCpu) + '%';
+            document.getElementById('cpu-bar').style.width = Math.round(newCpu) + '%';
+            
+            document.getElementById('ram-val').textContent = Math.round(newRam) + '%';
+            document.getElementById('ram-bar').style.width = Math.round(newRam) + '%';
+            
+            // Generate mock Load Average
+            const load1 = (newCpu / 100 * 2).toFixed(2); // roughly correlated to CPU
+            document.getElementById('load-val').textContent = `${load1}, 0.85, 0.50`;
+            if(parseFloat(load1) > 1.0) {
+                document.getElementById('load-val').classList.replace('text-htop-load', 'text-amber-500');
+            } else {
+                document.getElementById('load-val').classList.replace('text-amber-500', 'text-htop-load');
+            }
+
+            liveChart.update();
+        }
+
+        // ==========================================
+        // 2. SIGNAL & JOB CONTROL DISPATCHER
+        // ==========================================
+        let processes = [];
+        let selectedPid = null;
+
+        const baseProcesses = [
+            { pid: 1450, cmd: "dd if=/dev/zero of=/dev/null", state: "Foreground (Locked)", statusColor: "text-blue-600", bg: "bg-blue-50", type: "heavy" },
+            { pid: 900, cmd: "/usr/sbin/nginx -g daemon off", state: "Running (Background)", statusColor: "text-emerald-600", bg: "bg-emerald-50", type: "daemon" },
+            { pid: 1822, cmd: "python3 data_backup.py", state: "Running", statusColor: "text-emerald-600", bg: "bg-white", type: "normal" }
+        ];
+
+        function resetProcesses() {
+            processes = JSON.parse(JSON.stringify(baseProcesses)); // Deep copy
+            selectedPid = null;
+            renderProcesses();
+            logAction("> Sistem di-reset. Proses kembali ke kondisi awal.");
+        }
+
+        function renderProcesses() {
+            const listEl = document.getElementById('process-list');
+            listEl.innerHTML = '';
+
+            processes.forEach(p => {
+                const isSelected = selectedPid === p.pid;
+                const borderClass = isSelected ? 'border-brand-500 ring-2 ring-brand-200' : 'border-slate-200 hover:border-slate-300';
+                
+                let icon = 'fa-cog fa-spin';
+                if(p.state === 'Suspended') icon = 'fa-pause-circle text-amber-500';
+                else if(p.state === 'Killed') icon = 'fa-skull text-red-500';
+                else if(p.state.includes('Foreground')) icon = 'fa-lock text-blue-500';
+
+                const div = document.createElement('div');
+                div.id = `proc-${p.pid}`;
+                div.className = `p-3 rounded-lg border ${borderClass} cursor-pointer transition-all flex items-center justify-between ${p.state === 'Killed' ? 'bg-slate-100 opacity-60' : p.bg}`;
+                div.onclick = () => {
+                    if(p.state !== 'Killed') {
+                        selectedPid = p.pid;
+                        renderProcesses();
+                    }
+                };
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 text-center text-lg text-slate-400"><i class="fas ${icon}"></i></div>
+                        <div>
+                            <div class="font-mono text-sm font-bold text-slate-800">${p.cmd}</div>
+                            <div class="text-xs font-mono text-slate-500">PID: ${p.pid}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs font-bold uppercase tracking-wider ${p.statusColor} px-2 py-1 rounded bg-white border border-slate-100">
+                        ${p.state}
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        function logAction(msg) {
+            const logEl = document.getElementById('action-log');
+            logEl.innerHTML = msg;
+            // Blink effect
+            logEl.classList.remove('bg-slate-100');
+            logEl.classList.add('bg-brand-100', 'text-brand-800');
+            setTimeout(() => {
+                logEl.classList.remove('bg-brand-100', 'text-brand-800');
+                logEl.classList.add('bg-slate-100');
+            }, 300);
+        }
+
+        function flashProcess(pid) {
+            const el = document.getElementById(`proc-${pid}`);
+            if(el) {
+                el.classList.add('signal-flash');
+                setTimeout(() => el.classList.remove('signal-flash'), 500);
+            }
+        }
+
+        function dispatchAction(action) {
+            if(!selectedPid) {
+                logAction("⚠️ Error: Silakan klik/pilih salah satu proses di atas terlebih dahulu!");
+                return;
+            }
+
+            const procIndex = processes.findIndex(p => p.pid === selectedPid);
+            if(procIndex === -1) return;
+            const p = processes[procIndex];
+
+            flashProcess(p.pid);
+
+            if(action === 'suspend') {
+                if(p.state === 'Suspended') { logAction(`> PID ${p.pid} sudah dalam keadaan tertidur.`); return; }
+                p.state = 'Suspended';
+                p.statusColor = 'text-amber-600';
+                p.bg = 'bg-amber-50';
+                logAction(`> Mengirim Sinyal <strong>SIGSTOP (Ctrl+Z)</strong> ke PID ${p.pid}. Proses ditidurkan.`);
+            } 
+            else if (action === 'bg') {
+                if(p.state !== 'Suspended') { logAction(`> Perintah 'bg' hanya berfungsi untuk proses yang sedang Suspended.`); return; }
+                p.state = 'Running (Background)';
+                p.statusColor = 'text-emerald-600';
+                p.bg = 'bg-emerald-50';
+                logAction(`> Menjalankan perintah <strong>bg</strong>. PID ${p.pid} dilanjutkan secara asinkron di Latar Belakang.`);
+            }
+            else if (action === 'term') {
+                if(p.type === 'heavy') {
+                    logAction(`> Mengirim <strong>SIGTERM (15)</strong> ke PID ${p.pid} (dd). Proses ini mengabaikan permintaan elegan Anda! (Coba Kill -9).`);
+                    return; // heavy process ignores graceful term in this simulation
+                }
+                p.state = 'Killed';
+                p.statusColor = 'text-slate-500';
+                p.bg = 'bg-slate-100';
+                selectedPid = null;
+                logAction(`> Mengirim <strong>SIGTERM (15)</strong> ke PID ${p.pid}. Proses mematuhi dan berhenti dengan elegan.`);
+            }
+            else if (action === 'kill') {
+                p.state = 'Killed';
+                p.statusColor = 'text-red-600';
+                p.bg = 'bg-slate-100';
+                selectedPid = null;
+                logAction(`> Mengirim <strong>SIGKILL (9)</strong> ke PID ${p.pid}. Kernel membunuh proses ini secara mutlak seketika!`);
+            }
+            
+            renderProcesses();
+        }
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initLiveChart();
+            resetProcesses(); // Setup initial list
+        });
+    </script>
+</body>
+</html>

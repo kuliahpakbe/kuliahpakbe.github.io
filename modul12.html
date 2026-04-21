@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 12: Proyek Integrasi LAMP Stack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#fdf4ff', 100: '#fae8ff', 500: '#d946ef', 700: '#a21caf', 900: '#701a75' }, // Fuchsia/LAMP Theme
+                        lamp: { linux: '#f59e0b', apache: '#ef4444', mysql: '#3b82f6', php: '#8b5cf6' },
+                        term: { bg: '#0f172a', text: '#e2e8f0', accent: '#d946ef', success: '#4ade80', error: '#f87171', warn: '#facc15' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .term-scroll::-webkit-scrollbar { width: 6px; }
+        .term-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .term-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-500 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Node Animations */
+        @keyframes pulse-node {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        .node-active {
+            @apply border-emerald-500 bg-emerald-50;
+            animation: pulse-node 3s infinite;
+        }
+        .node-inactive {
+            @apply border-slate-300 bg-slate-100 opacity-60 grayscale;
+        }
+        
+        /* Data Flow Animations */
+        @keyframes flow-h {
+            0% { background-position: -20px 0; }
+            100% { background-position: 20px 0; }
+        }
+        @keyframes flow-v {
+            0% { background-position: 0 -20px; }
+            100% { background-position: 0 20px; }
+        }
+        .pipe-h-active {
+            background: linear-gradient(90deg, #94a3b8 25%, #4ade80 50%, #94a3b8 75%);
+            background-size: 20px 100%;
+            animation: flow-h 1s linear infinite;
+        }
+        .pipe-v-active {
+            background: linear-gradient(180deg, #94a3b8 25%, #4ade80 50%, #94a3b8 75%);
+            background-size: 100% 20px;
+            animation: flow-v 1s linear infinite;
+        }
+        .pipe-blocked {
+            background: #f87171 !important; /* Red */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-layer-group mr-2"></i> Modul 12: Final Project</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#teori" class="hover:text-brand-600 transition-colors">Arsitektur LAMP</a>
+                    <a href="#simulator" class="hover:text-brand-600 transition-colors">UFW & Stack Simulator</a>
+                    <a href="#capstone" class="hover:text-brand-600 transition-colors">Tugas Capstone</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <!-- Abstract Tech Background -->
+        <div class="absolute inset-0 flex p-8 pointer-events-none justify-around items-center opacity-10 font-mono text-brand-500 text-xl font-bold" aria-hidden="true">
+            <div class="transform -rotate-12 space-y-4">
+                <div class="text-lamp-linux">L I N U X</div>
+                <div class="text-lamp-apache">A P A C H E</div>
+                <div class="text-lamp-mysql">M Y S Q L</div>
+                <div class="text-lamp-php">P H P</div>
+            </div>
+            <div class="text-6xl"><i class="fas fa-shield-alt"></i></div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-50 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum Terakhir</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Proyek Integrasi LAMP Stack</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Inilah puncak perjalanan akademis Anda. Saatnya menggabungkan manajemen paket, administrasi layanan, dan konfigurasi keamanan untuk membangun pondasi server web kelas industri yang siap menampung jutaan pengguna.
+            </p>
+            <a href="#simulator" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-hammer mr-2"></i> Mulai Rakit Server
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Arsitektur LAMP -->
+        <section id="teori" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Anatomi Tumpukan Layanan (The Stack)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sebuah situs web dinamis (seperti SIAKAD atau E-Commerce) tidak bisa berjalan mandiri. Ia membutuhkan kolaborasi rumit dari 4 lapisan perangkat lunak yang saling berinteraksi, yang dikenal dengan akronim <strong>LAMP</strong>.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <!-- Linux -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-lamp-linux">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fab fa-linux text-4xl text-lamp-linux"></i>
+                        <h3 class="!mt-0 !mb-0 !border-none text-xl">Linux</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-0">Sistem operasi dasar (Ubuntu Server). Sebagai fondasi keras yang menyediakan sistem berkas (file system), manajemen jaringan, dan alokasi memori.</p>
+                </div>
+                
+                <!-- Apache -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-lamp-apache">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fas fa-feather-alt text-4xl text-lamp-apache"></i>
+                        <h3 class="!mt-0 !mb-0 !border-none text-xl">Apache</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-0">Web Server (*daemon*). Bertugas mendengarkan ketukan di Port 80 (HTTP) dari browser pengguna, lalu mengantarkan berkas web (HTML/CSS) kembali ke pengguna.</p>
+                </div>
+
+                <!-- MySQL -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-lamp-mysql">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fas fa-database text-4xl text-lamp-mysql"></i>
+                        <h3 class="!mt-0 !mb-0 !border-none text-xl">MySQL</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-0">Database Server (*daemon* di Port 3306). Tempat penyimpanan persisten data terstruktur seperti akun pengguna, produk, dan transaksi.</p>
+                </div>
+
+                <!-- PHP -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-lamp-php">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fab fa-php text-4xl text-lamp-php"></i>
+                        <h3 class="!mt-0 !mb-0 !border-none text-xl">PHP</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-0">Bahasa Pemrograman *Server-Side*. Otak yang memproses logika bisnis. Ia membaca dari Database (MySQL) lalu memberikan hasilnya ke Web Server (Apache).</p>
+                </div>
+            </div>
+
+            <div class="callout bg-slate-800 border-slate-600 text-slate-200 mb-8 shadow-lg">
+                <div class="flex items-center gap-3 mb-3 border-b border-slate-700 pb-3">
+                    <i class="fas fa-shield-alt text-3xl text-brand-500"></i>
+                    <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-white text-xl">Uncomplicated Firewall (UFW)</h3>
+                </div>
+                <p class="text-sm mt-3 leading-relaxed">
+                    Setelah Anda menginstal LAMP Stack, port server Anda (seperti 3306 milik database) berisiko terekspos ke seluruh dunia. Sistem operasi harus digembok menggunakan Tembok Api (Firewall).
+                </p>
+                <p class="text-sm mt-3 leading-relaxed text-brand-300 font-bold">
+                    ATURAN EMAS FIREWALL: "Tolak semuanya secara default (Deny All), lalu buka HANYA lubang-lubang spesifik yang benar-benar dibutuhkan."
+                </p>
+                <ul class="text-sm text-slate-300 mt-4 list-disc list-inside space-y-1">
+                    <li class="!pl-0 !before:content-none"><code class="bg-slate-900 text-brand-400 px-1 rounded">sudo ufw enable</code> : Menyalakan Tembok Api.</li>
+                    <li class="!pl-0 !before:content-none"><code class="bg-slate-900 text-emerald-400 px-1 rounded">sudo ufw allow 22</code> : Membuka akses Remote SSH (Sangat Kritis, jika lupa dibuka Anda akan terkunci dari server!).</li>
+                    <li class="!pl-0 !before:content-none"><code class="bg-slate-900 text-emerald-400 px-1 rounded">sudo ufw allow 80</code> : Membuka akses lalu lintas web HTTP agar pengunjung bisa melihat situs Anda.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Interaktif Simulator -->
+        <section id="simulator" class="scroll-mt-24 mb-16">
+            <div class="text-center mb-12">
+                <h2>Simulator Perancangan Arsitektur</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">
+                    Bangun infrastruktur Anda dari nol. Ketik perintah yang tepat di terminal kiri untuk menghidupkan komponen di arsitektur kanan. Tujuan akhir Anda adalah membuat garis jaringan berwarna hijau dari <strong>Browser Pengguna</strong> menembus <strong>UFW</strong> menuju <strong>Apache -> PHP -> Database</strong>.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col xl:flex-row">
+                
+                <!-- Terminal CLI Panel (Left) -->
+                <div class="w-full xl:w-5/12 bg-term-bg border-b xl:border-b-0 xl:border-r border-slate-700 flex flex-col h-[500px]">
+                    <div class="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="text-xs text-slate-400 font-mono">root@ubuntu-server:~</div>
+                        <div class="w-16"></div> <!-- spacer -->
+                    </div>
+                    
+                    <div id="term-output" class="flex-grow p-4 md:p-6 font-mono text-sm text-term-text overflow-y-auto term-scroll whitespace-pre-wrap flex flex-col">
+                        <div class="text-slate-500 mb-4">UFW & LAMP Stack Provisioning Terminal<br>Ketikkan perintah instalasi/firewall untuk membangun server. (Ketik 'help' untuk daftar perintah).</div>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="bg-slate-900 p-2 px-4 flex items-center shrink-0 border-t border-slate-800">
+                        <span class="font-bold mr-2 text-term-success">root@ubuntu:~#</span>
+                        <input type="text" id="term-input" class="flex-grow bg-transparent border-none outline-none text-term-text font-mono focus:ring-0" autocomplete="off" spellcheck="false" placeholder="sudo apt install apache2...">
+                    </div>
+                </div>
+
+                <!-- Architecture Visualizer (Right) -->
+                <div class="w-full xl:w-7/12 bg-slate-50 p-6 lg:p-10 flex items-center justify-center relative overflow-hidden">
+                    
+                    <!-- Watermark -->
+                    <div class="absolute right-4 bottom-4 text-slate-200 font-bold text-6xl opacity-50 select-none pointer-events-none"><i class="fas fa-server"></i></div>
+
+                    <div class="w-full max-w-2xl flex flex-col items-center gap-4 relative z-10">
+                        
+                        <!-- Client Layer -->
+                        <div class="w-full flex justify-center mb-2">
+                            <div class="flex items-center gap-2 text-slate-600 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
+                                <i class="fas fa-laptop text-xl"></i> 
+                                <span class="font-bold">Pengunjung Web (Internet)</span>
+                            </div>
+                        </div>
+
+                        <!-- Vertical Pipe (Client to Firewall) -->
+                        <div id="pipe-internet" class="w-2 h-10 bg-slate-300 transition-all duration-300"></div>
+
+                        <!-- Firewall Layer (UFW) -->
+                        <div id="box-ufw" class="w-full bg-slate-200 border-4 border-slate-300 rounded-xl p-4 text-center transition-all duration-500 relative">
+                            <h4 class="font-bold text-slate-700 text-lg mb-2"><i class="fas fa-shield-alt mr-2"></i>UFW (Uncomplicated Firewall)</h4>
+                            <div class="flex justify-center gap-4 text-xs font-mono font-bold">
+                                <div id="port-80" class="px-3 py-1 bg-white border border-slate-300 text-slate-400 rounded shadow-sm transition-colors">Port 80 (HTTP)</div>
+                                <div id="port-22" class="px-3 py-1 bg-white border border-slate-300 text-slate-400 rounded shadow-sm transition-colors">Port 22 (SSH)</div>
+                            </div>
+                            <!-- Status Overlay -->
+                            <div id="ufw-status-badge" class="absolute -top-3 -right-3 bg-slate-500 text-white text-xs font-bold px-2 py-1 rounded shadow">INACTIVE</div>
+                        </div>
+
+                        <!-- Vertical Pipe (Firewall to Server Area) -->
+                        <div id="pipe-inbound" class="w-2 h-10 bg-slate-300 transition-all duration-300"></div>
+
+                        <!-- Server OS Area -->
+                        <div class="w-full bg-slate-800 rounded-2xl p-6 border-2 border-slate-700 shadow-xl relative">
+                            <div class="absolute top-2 left-4 text-slate-500 text-xs font-bold font-mono">UBUNTU SERVER 22.04</div>
+                            
+                            <div class="mt-4 flex flex-col md:flex-row items-stretch justify-between gap-6">
+                                
+                                <!-- Web Server (Apache) -->
+                                <div id="box-apache" class="flex-1 node-inactive rounded-xl p-4 text-center flex flex-col items-center justify-center min-h-[120px] transition-all duration-500 border-4">
+                                    <i class="fas fa-feather-alt text-3xl mb-2 text-slate-400" id="icon-apache"></i>
+                                    <div class="font-bold text-slate-600" id="text-apache">Apache</div>
+                                    <div class="text-[10px] font-mono mt-1 text-slate-500 bg-white/50 px-2 rounded">/var/www/html</div>
+                                </div>
+
+                                <!-- Middle Logic (PHP) -->
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-10 h-2 bg-slate-300 md:hidden my-2"></div>
+                                    <div class="h-2 w-10 bg-slate-300 hidden md:block"></div>
+                                    
+                                    <div id="box-php" class="node-inactive rounded-full w-20 h-20 flex flex-col items-center justify-center z-10 transition-all duration-500 border-4 relative">
+                                        <i class="fab fa-php text-2xl text-slate-400" id="icon-php"></i>
+                                    </div>
+                                    
+                                    <div class="w-10 h-2 bg-slate-300 md:hidden my-2"></div>
+                                    <div class="h-2 w-10 bg-slate-300 hidden md:block"></div>
+                                </div>
+
+                                <!-- Database (MySQL) -->
+                                <div id="box-mysql" class="flex-1 node-inactive rounded-xl p-4 text-center flex flex-col items-center justify-center min-h-[120px] transition-all duration-500 border-4">
+                                    <i class="fas fa-database text-3xl mb-2 text-slate-400" id="icon-mysql"></i>
+                                    <div class="font-bold text-slate-600" id="text-mysql">MySQL</div>
+                                    <div class="text-[10px] font-mono mt-1 text-slate-500 bg-white/50 px-2 rounded">Port 3306</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Final Project Checklist -->
+        <section id="capstone" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Checklist Evaluasi Proyek Integrasi</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Setelah Anda memahami simulasinya, ini adalah saatnya Anda masuk ke Ubuntu VM sungguhan dan mengeksekusi instruksi ini. Kelulusan praktikum Anda ditentukan oleh berfungsinya arsitektur ini.</p>
+            </div>
+
+            <div class="bg-white p-8 md:p-10 rounded-2xl shadow-sm border border-slate-200">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    
+                    <div>
+                        <h4 class="font-bold text-xl text-slate-800 mb-6 flex items-center border-b pb-3"><i class="fas fa-tasks text-brand-500 mr-3"></i> Misi Administratif</h4>
+                        
+                        <div class="space-y-5">
+                            <label class="flex items-start gap-4 p-3 rounded hover:bg-slate-50 transition cursor-pointer group">
+                                <input type="checkbox" class="mt-1 w-5 h-5 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
+                                <div>
+                                    <span class="block font-bold text-slate-700 group-hover:text-brand-700 transition">1. Setup Basis Server</span>
+                                    <span class="text-sm text-slate-500">Konfigurasi IP Statis (Netplan), buat pengguna khusus dengan hak sudo, dan pastikan koneksi SSH dapat dilakukan dari Host (Windows).</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-4 p-3 rounded hover:bg-slate-50 transition cursor-pointer group">
+                                <input type="checkbox" class="mt-1 w-5 h-5 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
+                                <div>
+                                    <span class="block font-bold text-slate-700 group-hover:text-brand-700 transition">2. Deploy LAMP Stack</span>
+                                    <span class="text-sm text-slate-500">Instalasi <code>apache2</code>, <code>mysql-server</code>, dan <code>php</code>. Pastikan ketiga daemon berjalan stabil tanpa <em>Failed State</em>.</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-4 p-3 rounded hover:bg-slate-50 transition cursor-pointer group">
+                                <input type="checkbox" class="mt-1 w-5 h-5 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
+                                <div>
+                                    <span class="block font-bold text-slate-700 group-hover:text-brand-700 transition">3. Konfigurasi Keamanan (UFW & MySQL)</span>
+                                    <span class="text-sm text-slate-500">Jalankan <code>mysql_secure_installation</code>. Aktifkan UFW, buka port 22 dan 80 saja. Blokir semua lalu lintas masuk lainnya.</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-4 p-3 rounded hover:bg-slate-50 transition cursor-pointer group">
+                                <input type="checkbox" class="mt-1 w-5 h-5 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer">
+                                <div>
+                                    <span class="block font-bold text-slate-700 group-hover:text-brand-700 transition">4. Publikasi & Version Control</span>
+                                    <span class="text-sm text-slate-500">Buat file <code>index.php</code> (script koneksi database) di <code>/var/www/html</code>. Inisialisasi Git di sana, commit, dan push kode ke GitHub sebagai laporan.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800 p-8 rounded-xl shadow-inner text-white h-full flex flex-col justify-center">
+                        <h4 class="font-bold text-xl mb-4 text-brand-400">Parameter Keberhasilan (Goal)</h4>
+                        <p class="text-slate-300 mb-6 text-sm leading-relaxed">
+                            Proyek Anda dinyatakan LULUS (A) apabila Asisten Laboratorium dapat membuka Web Browser di PC Host (Windows), mengetikkan Alamat IP Ubuntu Server Anda, dan melihat halaman web PHP yang menampilkan tulisan: <strong class="text-emerald-400">"Koneksi ke Database Berhasil!"</strong>.
+                        </p>
+                        <div class="p-4 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-slate-400 break-words">
+                            <span class="text-blue-400">&lt;?php</span><br>
+                            $conn = <span class="text-emerald-400">new</span> mysqli("localhost", "admin", "password");<br>
+                            <span class="text-brand-400">if</span> ($conn->connect_error) {<br>
+                            &nbsp;&nbsp;<span class="text-brand-400">die</span>("Gagal: " . $conn->connect_error);<br>
+                            }<br>
+                            <span class="text-brand-400">echo</span> "Koneksi ke Database Berhasil!";<br>
+                            <span class="text-blue-400">?&gt;</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <!-- Interactive Simulator Logic -->
+    <script>
+        // ==========================================
+        // 1. STATE MANAGEMENT
+        // ==========================================
+        const sysState = {
+            apacheInstalled: false,
+            mysqlInstalled: false,
+            phpInstalled: false,
+            ufwEnabled: false,
+            port80Open: false,
+            port22Open: false
+        };
+
+        const termInput = document.getElementById('term-input');
+        const termOutput = document.getElementById('term-output');
+
+        // ==========================================
+        // 2. TERMINAL LOGIC
+        // ==========================================
+        function printLine(text, isHtml = false) {
+            const div = document.createElement('div');
+            if (isHtml) div.innerHTML = text;
+            else div.textContent = text;
+            termOutput.appendChild(div);
+            termOutput.scrollTop = termOutput.scrollHeight;
+        }
+
+        termInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const rawCmd = this.value;
+                const cmd = rawCmd.trim().replace(/\s+/g, ' '); // normalize spaces
+                this.value = '';
+
+                // Print prompt and command
+                printLine(`<span class="font-bold text-term-success">root@ubuntu:~#</span> <span class="text-white">${rawCmd}</span>`, true);
+                if (cmd === '') return;
+
+                processCommand(cmd);
+            }
+        });
+
+        function processCommand(cmd) {
+            const lowerCmd = cmd.toLowerCase();
+
+            // HELPER
+            if (lowerCmd === 'help') {
+                printLine(`<div class="text-slate-400 mt-2">Daftar perintah yang disimulasikan:</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- sudo apt install apache2</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- sudo apt install mysql-server</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- sudo apt install php</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- sudo ufw enable</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- sudo ufw allow 80</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- sudo ufw allow 22</div>`, true);
+                printLine(`<div class="text-brand-300 ml-4">- clear</div>`, true);
+                return;
+            }
+            if (lowerCmd === 'clear') {
+                termOutput.innerHTML = '';
+                return;
+            }
+
+            // PACKAGE INSTALLATION
+            if (lowerCmd.includes('apt install apache2')) {
+                if(sysState.apacheInstalled) {
+                    printLine("apache2 is already the newest version.");
+                } else {
+                    sysState.apacheInstalled = true;
+                    printLine("Reading package lists... Done");
+                    printLine("Building dependency tree... Done");
+                    printLine("Unpacking apache2...");
+                    printLine("Setting up apache2...");
+                    printLine(`<span class="text-term-success">Created symlink /etc/systemd/system/multi-user.target.wants/apache2.service</span>`, true);
+                    updateVisualizer();
+                }
+                return;
+            }
+
+            if (lowerCmd.includes('apt install mysql-server')) {
+                if(sysState.mysqlInstalled) {
+                    printLine("mysql-server is already the newest version.");
+                } else {
+                    sysState.mysqlInstalled = true;
+                    printLine("Reading package lists... Done");
+                    printLine("Building dependency tree... Done");
+                    printLine("Unpacking mysql-server...");
+                    printLine("Setting up mysql-server...");
+                    updateVisualizer();
+                }
+                return;
+            }
+
+            if (lowerCmd.includes('apt install php') || lowerCmd.includes('apt install libapache2-mod-php')) {
+                if(sysState.phpInstalled) {
+                    printLine("php is already the newest version.");
+                } else {
+                    sysState.phpInstalled = true;
+                    printLine("Reading package lists... Done");
+                    printLine("Unpacking php8.1...");
+                    printLine("Setting up php8.1...");
+                    printLine("Restarting apache2 to load php module...");
+                    updateVisualizer();
+                }
+                return;
+            }
+
+            // FIREWALL (UFW)
+            if (lowerCmd === 'sudo ufw enable' || lowerCmd === 'ufw enable') {
+                sysState.ufwEnabled = true;
+                printLine("Command may disrupt existing ssh connections. Proceed with operation (y|n)? y");
+                printLine(`<span class="text-term-success font-bold">Firewall is active and enabled on system startup</span>`, true);
+                updateVisualizer();
+                return;
+            }
+
+            if (lowerCmd.includes('ufw allow 80') || lowerCmd.includes('ufw allow http')) {
+                sysState.port80Open = true;
+                printLine("Rule added");
+                printLine("Rule added (v6)");
+                updateVisualizer();
+                return;
+            }
+
+            if (lowerCmd.includes('ufw allow 22') || lowerCmd.includes('ufw allow ssh')) {
+                sysState.port22Open = true;
+                printLine("Rule added");
+                printLine("Rule added (v6)");
+                updateVisualizer();
+                return;
+            }
+
+            // Fallback for unrecognised commands
+            printLine(`bash: ${cmd.split(' ')[0]}: command not found (or not simulated)`);
+        }
+
+        // ==========================================
+        // 3. ARCHITECTURE VISUALIZER UPDATER
+        // ==========================================
+        function updateVisualizer() {
+            // Components
+            const boxApache = document.getElementById('box-apache');
+            const iconApache = document.getElementById('icon-apache');
+            const textApache = document.getElementById('text-apache');
+            
+            const boxMysql = document.getElementById('box-mysql');
+            const iconMysql = document.getElementById('icon-mysql');
+            const textMysql = document.getElementById('text-mysql');
+            
+            const boxPhp = document.getElementById('box-php');
+            const iconPhp = document.getElementById('icon-php');
+
+            // Update Apache
+            if (sysState.apacheInstalled) {
+                boxApache.classList.remove('node-inactive');
+                boxApache.classList.add('node-active', 'border-red-400'); // Apache red tint
+                iconApache.classList.replace('text-slate-400', 'text-red-500');
+                textApache.classList.replace('text-slate-600', 'text-slate-800');
+            }
+
+            // Update MySQL
+            if (sysState.mysqlInstalled) {
+                boxMysql.classList.remove('node-inactive');
+                boxMysql.classList.add('node-active', 'border-blue-400');
+                iconMysql.classList.replace('text-slate-400', 'text-blue-500');
+                textMysql.classList.replace('text-slate-600', 'text-slate-800');
+            }
+
+            // Update PHP
+            if (sysState.phpInstalled) {
+                boxPhp.classList.remove('node-inactive');
+                boxPhp.classList.add('node-active', 'border-purple-400');
+                iconPhp.classList.replace('text-slate-400', 'text-purple-600');
+            }
+
+            // Update UFW & Ports
+            const boxUfw = document.getElementById('box-ufw');
+            const badgeUfw = document.getElementById('ufw-status-badge');
+            const port80 = document.getElementById('port-80');
+            const port22 = document.getElementById('port-22');
+
+            if (sysState.ufwEnabled) {
+                boxUfw.classList.replace('bg-slate-200', 'bg-slate-800');
+                boxUfw.classList.replace('border-slate-300', 'border-slate-600');
+                boxUfw.querySelector('h4').classList.replace('text-slate-700', 'text-white');
+                
+                badgeUfw.classList.replace('bg-slate-500', 'bg-emerald-500');
+                badgeUfw.textContent = 'ACTIVE (DENY ALL)';
+
+                // Visual blocks for port rules inside active firewall
+                if(sysState.port80Open) {
+                    port80.classList.replace('bg-white', 'bg-emerald-500');
+                    port80.classList.replace('text-slate-400', 'text-white');
+                    port80.classList.replace('border-slate-300', 'border-emerald-600');
+                } else {
+                    port80.classList.replace('bg-white', 'bg-red-500');
+                    port80.classList.replace('text-slate-400', 'text-white');
+                    port80.classList.replace('border-slate-300', 'border-red-600');
+                }
+
+                if(sysState.port22Open) {
+                    port22.classList.replace('bg-white', 'bg-emerald-500');
+                    port22.classList.replace('text-slate-400', 'text-white');
+                    port22.classList.replace('border-slate-300', 'border-emerald-600');
+                } else {
+                    port22.classList.replace('bg-white', 'bg-red-500');
+                    port22.classList.replace('text-slate-400', 'text-white');
+                    port22.classList.replace('border-slate-300', 'border-red-600');
+                }
+            }
+
+            // Data Flow Logic (The pipes)
+            const pipeInternet = document.getElementById('pipe-internet');
+            const pipeInbound = document.getElementById('pipe-inbound');
+
+            // Logic: Data can flow from internet TO firewall if Apache is installed (trying to hit port 80)
+            if (sysState.apacheInstalled) {
+                pipeInternet.classList.add('pipe-v-active');
+                
+                // If hitting firewall, what happens?
+                if (sysState.ufwEnabled) {
+                    if (sysState.port80Open) {
+                        pipeInbound.classList.remove('pipe-blocked');
+                        pipeInbound.classList.add('pipe-v-active');
+                    } else {
+                        // Blocked by UFW
+                        pipeInbound.classList.remove('pipe-v-active');
+                        pipeInbound.classList.add('pipe-blocked');
+                    }
+                } else {
+                    // Firewall inactive, traffic flows directly
+                    pipeInbound.classList.remove('pipe-blocked');
+                    pipeInbound.classList.add('pipe-v-active');
+                }
+            }
+
+            // Check if FULL STACK achieved
+            if (sysState.apacheInstalled && sysState.mysqlInstalled && sysState.phpInstalled && sysState.ufwEnabled && sysState.port80Open) {
+                // Celebration
+                setTimeout(() => {
+                    const badge = document.createElement('div');
+                    badge.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-emerald-600 text-white font-extrabold text-2xl px-6 py-4 rounded-xl shadow-2xl z-50 animate-[pulse-node_2s_infinite] border-4 border-emerald-300';
+                    badge.innerHTML = '<i class="fas fa-check-circle mr-2"></i> STACK INTEGRATION SUCCESSFUL';
+                    
+                    // only add if not already there
+                    if(!document.getElementById('success-badge')) {
+                        badge.id = 'success-badge';
+                        document.querySelector('.w-full.xl\\:w-7\\/12').appendChild(badge);
+                    }
+                }, 500);
+            }
+        }
+
+    </script>
+
+</body>
+</html>

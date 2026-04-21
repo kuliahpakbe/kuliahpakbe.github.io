@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 8: Version Control System (VCS) dengan Git</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#fff7ed', 100: '#ffedd5', 500: '#f97316', 700: '#c2410c', 900: '#7c2d12' }, // Orange/Git Theme
+                        git: { untracked: '#ef4444', staged: '#10b981', committed: '#3b82f6' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CRITICAL: Responsive Chart Container constraints */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 320px; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .term-scroll::-webkit-scrollbar { width: 6px; }
+        .term-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .term-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-600 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .content-section code {
+            @apply bg-slate-100 text-brand-700 px-2 py-1 rounded-md font-mono text-sm border border-slate-200 mx-1 font-semibold;
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Animations */
+        @keyframes fileMove {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .file-anim { animation: fileMove 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Orange/Git-Color (Brand/Interactive), Slate (Background), Red/Emerald/Blue (Git States) -->
+    <!-- Application Structure Plan: SPA dirancang dengan alur 'Interactive Git Workflow'. Mempelajari Git CLI murni sering terasa mengintimidasi dan abstrak bagi pemula. Oleh karena itu, aplikasi ini disusun menjadi: 1) Header & Latar Belakang (Mengapa kita butuh VCS), 2) Analisis Risiko Tanpa VCS (Grafik Chart.js), 3) Visualisasi Tiga Status Git (Alat interaktif berbasis HTML/CSS untuk mensimulasikan perpindahan file antar Working Directory -> Staging -> Repo), 4) Terminal Simulator Git (Konsol JS khusus yang mengevaluasi perintah dasar seperti git init, add, commit, log secara real-time), dan 5) Konsep Kolaborasi & GitHub. Struktur ini mengutamakan pemahaman 'Life Cycle' file sebelum mahasiswa mengetik perintah secara membabi buta. -->
+    <!-- Visualization & Content Choices: 1. Alasan Menggunakan Git -> Goal: Inform/Persuade -> Viz: Doughnut Chart (Chart.js) -> Justification: Memperlihatkan persentase penyebab hilangnya kode/proyek rusak jika tidak memakai Git. 2. Tiga Status (Three States) -> Goal: Change/Relationships -> Viz: Interactive HTML Flexbox Flow -> Justification: Mengubah konsep abstrak (Untracked, Staged, Committed) menjadi elemen visual yang bisa dipindahkan dengan tombol "git add" dan "git commit", tanpa menggunakan SVG. 3. Simulator Git CLI -> Goal: Engagement/Compute -> Viz: JS-driven Terminal -> Justification: Latihan langsung (Formative assessment). Terminal ini mengingat 'state' repository, memicu error jika belum diinisialisasi, dan merespon git status selayaknya Git asli. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-code-branch mr-2"></i> Modul 8 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#konsep" class="hover:text-brand-600 transition-colors">Konsep Dasar</a>
+                    <a href="#siklus" class="hover:text-brand-600 transition-colors">Siklus File</a>
+                    <a href="#simulator" class="hover:text-brand-600 transition-colors">Git Simulator</a>
+                    <a href="#github" class="hover:text-brand-600 transition-colors">GitHub & Remote</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-20 font-mono text-xs overflow-hidden select-none pointer-events-none text-brand-500 flex items-center justify-center" aria-hidden="true">
+            <div class="transform -rotate-12 space-y-2 opacity-50">
+                <div>commit a1b2c3d4... (HEAD -> main, origin/main)</div>
+                <div>Author: Budi &lt;budi@ubuntu&gt;</div>
+                <div>Date:   Mon Apr 15 10:24:12 2026 +0700</div>
+                <br>
+                <div>&nbsp;&nbsp;&nbsp;&nbsp;Menambahkan fitur login pengguna</div>
+                <br>
+                <div>git status</div>
+                <div>On branch main</div>
+                <div>nothing to commit, working tree clean</div>
+            </div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 8</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Version Control System dengan Git</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Tinggalkan kebiasaan buruk menyimpan file dengan nama <code>final_revisi_3_beneran.txt</code>. Kuasai standar industri dalam melacak perubahan kode, memulihkan versi lama, dan berkolaborasi secara masif.
+            </p>
+            <a href="#simulator" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-terminal mr-2"></i> Latihan Perintah Git
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Konsep Dasar -->
+        <section id="konsep" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Mengapa Kita Membutuhkan Git?</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Version Control System (VCS) bertindak sebagai "Mesin Waktu" untuk proyek Anda. Tanpa VCS, kolaborasi kode adalah sebuah mimpi buruk.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center mb-12">
+                <div class="space-y-6">
+                    <div class="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-200 border-l-4 border-l-red-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl text-red-900"><i class="fas fa-times-circle mr-2"></i> Tradisi Konvensional (Tanpa Git)</h3>
+                        <p class="text-sm !mb-2 text-red-800">Menyalin folder proyek berulang kali sebagai cadangan. Anda akhirnya memiliki deretan file membingungkan:</p>
+                        <div class="font-mono text-xs text-red-700 bg-red-100/50 p-3 rounded">
+                            proyek_akhir/<br>
+                            ├── web_ku_v1.html<br>
+                            ├── web_ku_v2_revisi.html<br>
+                            └── web_ku_final_FIX_BANGET.html
+                        </div>
+                    </div>
+                    
+                    <div class="bg-emerald-50 p-6 rounded-2xl shadow-sm border border-emerald-200 border-l-4 border-l-emerald-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl text-emerald-900"><i class="fas fa-check-circle mr-2"></i> Paradigma Git (Distributed VCS)</h3>
+                        <p class="text-sm !mb-2 text-emerald-800">File di dalam folder proyek Anda hanya ada <strong>satu versi (yang sedang dikerjakan)</strong>. Seluruh riwayat perubahan file tersebut direkam dan disimpan oleh Git di dalam folder tersembunyi bernama <code>.git</code>.</p>
+                        <p class="text-sm !mb-0 text-emerald-800">Git mencatat <em>Siapa</em> mengubah <em>Apa</em> dan <em>Kapan</em>.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="text-center font-bold text-slate-800 mb-2 mt-0">Risiko Kehilangan Kode (Tanpa VCS)</h4>
+                    <p class="text-center text-xs text-slate-500 mb-4">Statistik umum penyebab hancurnya proyek mahasiswa atau tim.</p>
+                    <div class="chart-container">
+                        <canvas id="riskChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visualisasi Tiga Status (Three States) -->
+        <section id="siklus" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Siklus Hidup File (Three States)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Ini adalah <strong>konsep paling penting</strong> di dalam Git. Sebuah file harus melewati tiga "ruangan" secara berurutan sebelum perubahan tersebut benar-benar terekam secara permanen.</p>
+            </div>
+
+            <div class="bg-slate-900 rounded-3xl shadow-xl p-8 mb-12 relative overflow-hidden text-white">
+                <div class="text-center mb-8">
+                    <h3 class="!mt-0 !mb-2 !border-none text-2xl text-white">Interactive Workflow</h3>
+                    <p class="text-slate-400 text-sm">Klik tombol di bawah untuk memindahkan file <code class="bg-slate-800 text-amber-400 px-2 py-0.5 rounded border-none">index.html</code> melewati tahapan Git.</p>
+                </div>
+
+                <!-- 3 Columns Layout -->
+                <div class="grid grid-cols-3 gap-4 md:gap-8 text-center relative z-10">
+                    
+                    <!-- Working Directory -->
+                    <div class="bg-slate-800 rounded-xl p-4 border-2 border-git-untracked flex flex-col items-center min-h-[250px]">
+                        <div class="font-bold text-git-untracked mb-1">Working Directory</div>
+                        <div class="text-xs text-slate-400 mb-4 h-10">Area kerja Anda. File baru dibuat atau dimodifikasi di sini. (Berstatus Untracked / Modified).</div>
+                        
+                        <div id="wd-area" class="flex-grow w-full border border-slate-700 border-dashed rounded-lg flex items-center justify-center p-2 relative bg-slate-900/50">
+                            <!-- File element generated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Staging Area -->
+                    <div class="bg-slate-800 rounded-xl p-4 border-2 border-git-staged flex flex-col items-center min-h-[250px]">
+                        <div class="font-bold text-git-staged mb-1">Staging Area (Index)</div>
+                        <div class="text-xs text-slate-400 mb-4 h-10">Ruang tunggu. Anda memilih file mana saja yang siap untuk direkam bersamaan.</div>
+                        
+                        <div id="staging-area" class="flex-grow w-full border border-slate-700 border-dashed rounded-lg flex items-center justify-center p-2 relative bg-slate-900/50">
+                        </div>
+                    </div>
+
+                    <!-- Repository -->
+                    <div class="bg-slate-800 rounded-xl p-4 border-2 border-git-committed flex flex-col items-center min-h-[250px]">
+                        <div class="font-bold text-git-committed mb-1">Local Repository</div>
+                        <div class="text-xs text-slate-400 mb-4 h-10">Brankas sejarah. Perubahan direkam secara permanen sebagai satu "Commit".</div>
+                        
+                        <div id="repo-area" class="flex-grow w-full border border-slate-700 border-dashed rounded-lg flex items-center justify-center p-2 relative bg-slate-900/50">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="mt-8 flex flex-col md:flex-row justify-center gap-4 relative z-10">
+                    <button onclick="workflowAction('reset')" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm">
+                        <i class="fas fa-undo mr-1"></i> Buat/Ubah File
+                    </button>
+                    <button onclick="workflowAction('add')" class="bg-git-staged hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        git add index.html <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                    <button onclick="workflowAction('commit')" class="bg-git-committed hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                        git commit -m "..." <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Simulator Git Terminal -->
+        <section id="simulator" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Git CLI Simulator</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Mari kita praktikkan alur kerja di atas! Konsol di bawah ini menyimulasikan repositori Git. Cobalah membuat file, melacak statusnya, dan melakukan komit pertama Anda.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                
+                <!-- Instructions -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="!mt-0 text-lg border-b pb-2">Misi Latihan Praktikum</h3>
+                    <ol class="list-decimal list-inside space-y-3 text-sm text-slate-700 mt-4 font-medium">
+                        <li class="pb-2 border-b border-slate-100">Cek status awal: <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('git status')">git status</code></li>
+                        <li class="pb-2 border-b border-slate-100">Inisialisasi repo: <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('git init')">git init</code></li>
+                        <li class="pb-2 border-b border-slate-100">Buat sebuah file baru: <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('touch tugas.txt')">touch tugas.txt</code></li>
+                        <li class="pb-2 border-b border-slate-100">Cek status (Penting!): <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('git status')">git status</code></li>
+                        <li class="pb-2 border-b border-slate-100">Pindahkan ke Staging: <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('git add tugas.txt')">git add tugas.txt</code></li>
+                        <li class="pb-2 border-b border-slate-100">Rekam ke Repository: <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('git commit -m &quot;Tugas pertama selesai&quot;')">git commit -m "Tugas pertama selesai"</code></li>
+                        <li class="pb-2 border-b border-slate-100">Cek riwayat sejarah: <code class="bg-slate-100 px-1 rounded text-brand-600 cursor-pointer" onclick="typeCmd('git log')">git log</code></li>
+                    </ol>
+                    <div class="mt-4 text-xs text-slate-500 italic">* Klik pada kode untuk menyalin otomatis ke terminal.</div>
+                </div>
+
+                <!-- Terminal -->
+                <div class="lg:col-span-2 bg-[#0f172a] rounded-2xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col h-[400px]">
+                    <!-- Terminal Header -->
+                    <div class="bg-slate-800 px-4 py-2 flex items-center gap-2 border-b border-slate-700">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <div class="mx-auto text-xs text-slate-400 font-mono">budi@ubuntu:~/proyek_os</div>
+                    </div>
+                    
+                    <!-- Terminal Body -->
+                    <div class="p-4 md:p-6 font-mono text-sm text-[#38bdf8] flex-grow flex flex-col relative" onclick="document.getElementById('term-input').focus()">
+                        
+                        <!-- Output Area -->
+                        <div id="term-output" class="flex-grow overflow-y-auto term-scroll pb-2 space-y-1 break-words">
+                            <div class="text-slate-500">Git Environment Simulator v1.0</div>
+                            <div class="text-slate-500 mb-4">Direktori saat ini: /home/budi/proyek_os</div>
+                        </div>
+                        
+                        <!-- Input Area -->
+                        <div class="flex mt-2 items-start shrink-0">
+                            <span id="term-prompt" class="font-bold mr-2 whitespace-nowrap text-[#a3e635]">budi@ubuntu:~/proyek_os$</span>
+                            <input type="text" id="term-input" class="flex-grow bg-transparent border-none outline-none text-[#38bdf8] font-mono focus:ring-0" autocomplete="off" spellcheck="false" autofocus>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Kolaborasi & GitHub -->
+        <section id="github" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Sinkronisasi Remote & GitHub</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Repositori lokal di laptop Anda rentan hilang jika laptop rusak. Kita perlu menyinkronkannya ke server jauh (Remote Repository) seperti GitHub atau GitLab.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="callout bg-slate-800 border-slate-700 text-slate-200 !mb-0 shadow-lg relative overflow-hidden">
+                    <!-- Icon Background -->
+                    <i class="fab fa-github absolute -right-6 -bottom-6 text-9xl text-slate-700 opacity-50"></i>
+                    
+                    <h3 class="!mt-0 !mb-4 !pb-0 !border-none text-white text-xl relative z-10">Alur Kerja Remote</h3>
+                    <p class="text-sm leading-relaxed mb-4 relative z-10 text-slate-300">Setelah kode direkam di Local Repository (Commit), Anda harus mendorongnya ke server GitHub agar bisa diakses oleh rekan tim.</p>
+                    
+                    <div class="space-y-3 relative z-10 font-mono text-xs">
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700">
+                            <div class="text-slate-400 mb-1"># Menghubungkan folder lokal ke GitHub</div>
+                            <span class="text-emerald-400">git remote add origin https://github.com/budi/repo.git</span>
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700">
+                            <div class="text-slate-400 mb-1"># Mendorong (Upload) commit ke GitHub</div>
+                            <span class="text-brand-400">git push -u origin main</span>
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700">
+                            <div class="text-slate-400 mb-1"># Menarik (Download) update dari rekan tim</div>
+                            <span class="text-blue-400">git pull origin main</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="callout bg-amber-50 border-amber-500 text-amber-900 !mb-0">
+                    <div class="flex items-center gap-3 mb-2 border-b border-amber-200 pb-3">
+                        <span class="text-3xl">🔑</span>
+                        <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-amber-900 text-lg">Keamanan: Personal Access Token (PAT)</h3>
+                    </div>
+                    <p class="text-sm mt-3 leading-relaxed">Sejak tahun 2021, GitHub <strong>tidak lagi mengizinkan</strong> penggunaan password akun biasa saat Anda melakukan <code>git push</code> via terminal.</p>
+                    <p class="text-sm mt-3 leading-relaxed"><strong>Solusi:</strong> Anda harus membuat Token Khusus (PAT) di menu pengaturan GitHub (<em>Developer Settings</em>). Token ini berupa deretan karakter acak yang panjang (misal: <code>ghp_1a2b3c...</code>).</p>
+                    <div class="bg-white p-3 rounded border border-amber-200 mt-4 text-xs font-bold text-amber-800">
+                        Saat terminal meminta password untuk GitHub, tempelkan (Paste) token PAT Anda, BUKAN password akun web Anda!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. CHART.JS: RISIKO TANPA GIT
+        // ==========================================
+        function initChart() {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ditindih Teman (Kolaborasi Kacau)', 'Laptop Rusak/Hilang', 'Revisi Error Sulit Di-Undo', 'Lupa Versi Mana Yang Final'],
+                    datasets: [{
+                        data: [40, 25, 20, 15],
+                        backgroundColor: [
+                            '#ef4444', // Red
+                            '#f97316', // Orange
+                            '#f59e0b', // Amber
+                            '#64748b'  // Slate
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11, family: 'Inter' } } },
+                        tooltip: { callbacks: { label: function(c) { return ' ' + c.label + ': ' + c.raw + '%'; } } }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 2. INTERACTIVE WORKFLOW (HTML/CSS)
+        // ==========================================
+        let flowState = 0; // 0=WD, 1=Staged, 2=Repo
+        
+        function renderWorkflow() {
+            const wd = document.getElementById('wd-area');
+            const st = document.getElementById('staging-area');
+            const rp = document.getElementById('repo-area');
+            
+            wd.innerHTML = ''; st.innerHTML = ''; rp.innerHTML = '';
+
+            const fileHTML = `
+                <div class="bg-white px-3 py-2 rounded border border-slate-300 shadow-sm flex items-center gap-2 file-anim absolute">
+                    <i class="fas fa-file-code text-brand-500"></i>
+                    <span class="text-xs font-bold text-slate-700">index.html</span>
+                </div>
+            `;
+
+            if (flowState === 0) { wd.innerHTML = fileHTML; }
+            else if (flowState === 1) { st.innerHTML = fileHTML; }
+            else if (flowState === 2) { rp.innerHTML = fileHTML; }
+        }
+
+        function workflowAction(action) {
+            if(action === 'reset') { flowState = 0; }
+            else if (action === 'add') {
+                if(flowState === 0) flowState = 1;
+                else alert("File tidak ada di Working Directory, atau sudah terekam.");
+            }
+            else if (action === 'commit') {
+                if(flowState === 1) flowState = 2;
+                else alert("Pindahkan file ke Staging Area terlebih dahulu menggunakan 'git add'.");
+            }
+            renderWorkflow();
+        }
+
+        // ==========================================
+        // 3. GIT TERMINAL SIMULATOR
+        // ==========================================
+        const termInput = document.getElementById('term-input');
+        const termOutput = document.getElementById('term-output');
+        const termPrompt = document.getElementById('term-prompt');
+
+        // Virtual Git State
+        const gitState = {
+            isInit: false,
+            branch: 'main',
+            files: {}, // name -> state ('untracked', 'staged', 'committed', 'modified')
+            commits: []
+        };
+
+        function printLine(text, isHtml = false, colorClass = 'text-[#38bdf8]') {
+            const div = document.createElement('div');
+            if(isHtml) div.innerHTML = text;
+            else div.textContent = text;
+            div.className = colorClass;
+            termOutput.appendChild(div);
+            termOutput.scrollTop = termOutput.scrollHeight;
+        }
+
+        function typeCmd(cmdText) {
+            termInput.value = cmdText;
+            termInput.focus();
+            // Trigger Enter event
+            const event = new KeyboardEvent('keydown', { key: 'Enter' });
+            termInput.dispatchEvent(event);
+        }
+
+        termInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const rawCmd = this.value;
+                const cmd = rawCmd.trim();
+                this.value = '';
+
+                // Print prompt and command
+                printLine(`<span class="font-bold text-[#a3e635]">budi@ubuntu:~/proyek_os$</span> ${rawCmd}`, true);
+                if (cmd === '') return;
+
+                // Simple parser
+                const args = [];
+                let current = '';
+                let inQuotes = false;
+                for(let i=0; i<cmd.length; i++) {
+                    if(cmd[i] === '"' || cmd[i] === "'") { inQuotes = !inQuotes; continue; }
+                    if(cmd[i] === ' ' && !inQuotes) { if(current) args.push(current); current = ''; }
+                    else { current += cmd[i]; }
+                }
+                if(current) args.push(current);
+                
+                const mainCmd = args[0];
+
+                // Global non-git commands
+                if (mainCmd === 'clear') { termOutput.innerHTML = ''; return; }
+                if (mainCmd === 'touch') {
+                    if(args.length < 2) { printLine('touch: missing file operand'); return; }
+                    const file = args[1];
+                    if(!gitState.files[file]) {
+                        gitState.files[file] = 'untracked';
+                    } else if (gitState.files[file] === 'committed') {
+                        gitState.files[file] = 'modified'; // modifying an existing file
+                    }
+                    return;
+                }
+
+                // Enforce git command
+                if (mainCmd !== 'git') {
+                    printLine(`${mainCmd}: command not found`);
+                    return;
+                }
+
+                const gitCmd = args[1];
+
+                // Command: git init
+                if (gitCmd === 'init') {
+                    if(gitState.isInit) {
+                        printLine('Reinitialized existing Git repository in /home/budi/proyek_os/.git/');
+                    } else {
+                        gitState.isInit = true;
+                        printLine('Initialized empty Git repository in /home/budi/proyek_os/.git/');
+                        // update prompt to show branch
+                        termPrompt.innerHTML = `budi@ubuntu:~/proyek_os <span class="text-blue-400">(${gitState.branch})</span>$`;
+                    }
+                    return;
+                }
+
+                // Guard: Git commands require init
+                if (!gitState.isInit) {
+                    printLine('fatal: not a git repository (or any of the parent directories): .git', false, 'text-red-400');
+                    return;
+                }
+
+                // Git Command Switch
+                switch(gitCmd) {
+                    case 'status':
+                        printLine(`On branch ${gitState.branch}`);
+                        
+                        let hasStaged = false;
+                        let stagedHtml = `<div class="text-green-400">Changes to be committed:</div>`;
+                        stagedHtml += `<div class="text-green-400 text-xs ml-4 mb-2">(use "git restore --staged &lt;file&gt;..." to unstage)</div>`;
+                        
+                        let hasUntracked = false;
+                        let untrackedHtml = `<div class="text-red-400 mt-2">Untracked files:</div>`;
+                        untrackedHtml += `<div class="text-red-400 text-xs ml-4 mb-2">(use "git add &lt;file&gt;..." to include in what will be committed)</div>`;
+
+                        let hasModified = false;
+                        let modHtml = `<div class="text-red-400 mt-2">Changes not staged for commit:</div>`;
+
+                        const fileNames = Object.keys(gitState.files);
+                        
+                        fileNames.forEach(f => {
+                            if(gitState.files[f] === 'staged') { hasStaged = true; stagedHtml += `<div class="text-green-400 ml-8">new file:   ${f}</div>`; }
+                            if(gitState.files[f] === 'untracked') { hasUntracked = true; untrackedHtml += `<div class="text-red-400 ml-8">${f}</div>`; }
+                            if(gitState.files[f] === 'modified') { hasModified = true; modHtml += `<div class="text-red-400 ml-8">modified:   ${f}</div>`; }
+                        });
+
+                        if(hasStaged) printLine(stagedHtml, true);
+                        if(hasModified) printLine(modHtml, true);
+                        if(hasUntracked) printLine(untrackedHtml, true);
+
+                        if(!hasStaged && !hasUntracked && !hasModified) {
+                            if(gitState.commits.length === 0) printLine('No commits yet');
+                            else printLine('nothing to commit, working tree clean');
+                        } else if (hasUntracked && !hasStaged) {
+                            printLine('nothing added to commit but untracked files present (use "git add" to track)');
+                        }
+                        break;
+
+                    case 'add':
+                        if(args.length < 3) { printLine('Nothing specified, nothing added.'); break; }
+                        const target = args[2];
+                        if(target === '.') {
+                            // stage all
+                            Object.keys(gitState.files).forEach(f => {
+                                if(gitState.files[f] !== 'committed') gitState.files[f] = 'staged';
+                            });
+                        } else {
+                            if(gitState.files[target] && gitState.files[target] !== 'committed') {
+                                gitState.files[target] = 'staged';
+                            } else if (!gitState.files[target]) {
+                                printLine(`fatal: pathspec '${target}' did not match any files`, false, 'text-red-400');
+                            }
+                        }
+                        break;
+
+                    case 'commit':
+                        if(args[2] !== '-m' || !args[3]) { printLine('error: switch `m` requires a value'); break; }
+                        const msg = args[3];
+                        
+                        let filesToCommit = [];
+                        Object.keys(gitState.files).forEach(f => {
+                            if(gitState.files[f] === 'staged') {
+                                filesToCommit.push(f);
+                                gitState.files[f] = 'committed';
+                            }
+                        });
+
+                        if(filesToCommit.length === 0) {
+                            printLine('nothing to commit, working tree clean');
+                        } else {
+                            // Generate hash
+                            const hash = Math.random().toString(16).substring(2, 9);
+                            const d = new Date();
+                            gitState.commits.unshift({ hash, msg, date: d.toString().split(' GMT')[0], author: 'Budi <budi@ubuntu>' });
+                            
+                            printLine(`[${gitState.branch} (root-commit) ${hash}] ${msg}`);
+                            printLine(` ${filesToCommit.length} file changed, insertions(+)`);
+                            filesToCommit.forEach(f => printLine(` create mode 100644 ${f}`));
+                        }
+                        break;
+
+                    case 'log':
+                        if(gitState.commits.length === 0) {
+                            printLine(`fatal: your current branch '${gitState.branch}' does not have any commits yet`, false, 'text-red-400');
+                        } else {
+                            gitState.commits.forEach((c, idx) => {
+                                let headStr = idx === 0 ? `<span class="text-yellow-400 font-bold">(HEAD -> ${gitState.branch})</span>` : '';
+                                let logHtml = `
+                                    <div class="text-yellow-400">commit ${c.hash} ${headStr}</div>
+                                    <div class="text-slate-300">Author: ${c.author}</div>
+                                    <div class="text-slate-300">Date:   ${c.date}</div>
+                                    <br>
+                                    <div class="ml-4">${c.msg}</div>
+                                    <br>
+                                `;
+                                printLine(logHtml, true);
+                            });
+                        }
+                        break;
+
+                    default:
+                        printLine(`git: '${gitCmd}' is not a git command. See 'git --help'.`);
+                }
+            }
+        });
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            renderWorkflow(); // Initial HTML workflow render
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 11: Manajemen Paket dan Layanan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 700: '#4338ca', 900: '#312e81' }, // Indigo Theme
+                        term: { bg: '#0f172a', text: '#e2e8f0', accent: '#38bdf8', success: '#4ade80', error: '#f87171', warn: '#facc15' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .term-scroll::-webkit-scrollbar { width: 6px; }
+        .term-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .term-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-500 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Status Indicator Animations */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        .status-active {
+            animation: pulse-green 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-cogs mr-2"></i> Modul 11 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#paket" class="hover:text-brand-600 transition-colors">Manajemen Paket (APT)</a>
+                    <a href="#systemd" class="hover:text-brand-600 transition-colors">Layanan (Systemd)</a>
+                    <a href="#simulator" class="hover:text-brand-600 transition-colors">Simulator Systemctl</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <!-- Background Decor -->
+        <div class="absolute inset-0 flex p-8 pointer-events-none justify-center opacity-10 font-mono text-brand-500 text-sm overflow-hidden" aria-hidden="true">
+            <div class="space-y-1 w-full max-w-4xl opacity-50">
+                <div>[  OK  ] Started Nginx Web Server.</div>
+                <div>[  OK  ] Reached target Multi-User System.</div>
+                <div>Starting MySQL Community Server...</div>
+                <div>[  OK  ] Started MySQL Community Server.</div>
+                <div>Get:1 http://id.archive.ubuntu.com/ubuntu jammy InRelease [270 kB]</div>
+                <div>Reading package lists... Done</div>
+                <div>Building dependency tree... Done</div>
+            </div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-50 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 11</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Manajemen Paket & Layanan Server</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Jadilah penguasa ekosistem Linux. Pelajari cara menginstal perangkat lunak dari repositori global, mengendalikan layanan latar belakang (daemon), dan melacak setiap nafas sistem operasi melalui berkas log.
+            </p>
+            <a href="#simulator" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-play mr-2"></i> Buka Simulator Layanan
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Manajemen Paket (APT) -->
+        <section id="paket" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Manajemen Paket (Package Management)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Di Linux, Anda tidak mencari aplikasi berekstensi <code>.exe</code> di internet lalu menginstalnya secara manual. Kita menggunakan sistem <strong>Repository</strong> yang aman dan terpusat.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12 items-center">
+                <div class="space-y-6">
+                    <div class="callout bg-blue-50 border-blue-500 text-blue-900 !mb-0 shadow-sm">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl text-blue-900"><i class="fas fa-box-open mr-2"></i> Advanced Package Tool (APT)</h3>
+                        <p class="text-sm mt-2 leading-relaxed">
+                            Keluarga Debian/Ubuntu menggunakan APT untuk mengelola perangkat lunak. APT secara cerdas mengunduh aplikasi beserta seluruh pustaka pendukungnya (<em>dependencies</em>) secara otomatis.
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-3 border-b pb-2">3 Perintah Suci Administrator:</h4>
+                        <ul class="space-y-4 text-sm list-none !ml-0 mb-0">
+                            <li class="!pl-0 !before:content-none">
+                                <code class="block bg-slate-800 text-brand-400 p-2 rounded mb-1">sudo apt update</code>
+                                <span class="text-slate-600">Mengambil daftar katalog aplikasi terbaru dari server pusat (Tidak menginstal apapun).</span>
+                            </li>
+                            <li class="!pl-0 !before:content-none">
+                                <code class="block bg-slate-800 text-brand-400 p-2 rounded mb-1">sudo apt upgrade</code>
+                                <span class="text-slate-600">Memperbarui (update) seluruh aplikasi yang ada di komputer ke versi terbaru berdasarkan katalog.</span>
+                            </li>
+                            <li class="!pl-0 !before:content-none">
+                                <code class="block bg-slate-800 text-brand-400 p-2 rounded mb-1">sudo apt install nginx</code>
+                                <span class="text-slate-600">Mengunduh dan memasang aplikasi tertentu (misal: Nginx Web Server).</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Repositori Visual -->
+                <div class="bg-slate-800 p-8 rounded-2xl shadow-md flex flex-col justify-center h-full">
+                    <h4 class="text-white text-center font-bold mb-6 !mt-0">Cara Kerja Repositori Ubuntu</h4>
+                    
+                    <div class="flex flex-col items-center gap-4 text-sm">
+                        <!-- Server -->
+                        <div class="bg-slate-700 border border-slate-600 p-4 rounded-xl text-center w-full max-w-xs shadow-inner">
+                            <i class="fas fa-globe text-3xl text-brand-400 mb-2"></i>
+                            <div class="text-white font-bold">Ubuntu Archive Server</div>
+                            <div class="text-slate-400 text-xs mt-1">/etc/apt/sources.list</div>
+                        </div>
+
+                        <!-- Arrow -->
+                        <div class="text-brand-400 text-2xl animate-bounce">↓</div>
+
+                        <!-- Client -->
+                        <div class="bg-slate-100 border border-brand-500 p-4 rounded-xl text-center w-full max-w-xs shadow">
+                            <i class="fas fa-laptop-code text-3xl text-slate-700 mb-2"></i>
+                            <div class="text-slate-800 font-bold">Server Lokal Anda</div>
+                            <div class="text-slate-500 text-xs mt-1">Memeriksa dependensi (libssl, libc6) lalu menginstal paket secara rapi.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sistem Init dan Systemd -->
+        <section id="systemd" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Manajemen Layanan (Systemd)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Setelah aplikasi server (seperti Nginx atau MySQL) diinstal, mereka harus berjalan terus-menerus di latar belakang tanpa henti. Proses ini disebut <strong>Daemon</strong>.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-slate-800 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-brain text-slate-500 mr-2"></i> Apa itu Systemd?</h3>
+                    <p class="text-sm text-slate-600 mb-0 flex-grow">
+                        <strong>Systemd</strong> (dengan huruf 'd' berarti <em>daemon</em>) adalah manajer sistem dan layanan untuk OS Linux modern. Ia adalah proses induk (PID 1) yang bertugas menyalakan, mematikan, dan memonitor aplikasi latar belakang lainnya.
+                    </p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-brand-500 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-terminal text-brand-500 mr-2"></i> Perintah systemctl</h3>
+                    <p class="text-sm text-slate-600 mb-0 flex-grow">
+                        Kita berinteraksi dengan <code>systemd</code> menggunakan alat CLI bernama <strong><code>systemctl</code></strong>. Alat ini digunakan untuk menyuruh layanan agar <em>start</em>, <em>stop</em>, atau <em>restart</em> (misal jika kita mengubah file konfigurasi).
+                    </p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-power-off text-emerald-500 mr-2"></i> Enable vs Start</h3>
+                    <p class="text-sm text-slate-600 mb-0 flex-grow">
+                        <code>start</code> hanya menyalakan layanan <em>saat ini saja</em>. Jika server direstart, layanan akan mati. <br>
+                        <code>enable</code> mendaftarkan layanan tersebut agar <strong>hidup otomatis</strong> setiap kali server baru di-<em>booting</em> (Auto-Start).
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Simulator Systemctl -->
+        <section id="simulator" class="scroll-mt-24 mb-16">
+            <div class="text-center mb-12">
+                <h2>Simulator Manajemen Layanan</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">
+                    Mari simulasikan pengelolaan web server <strong>Nginx</strong>. Gunakan panel kontrol di sebelah kiri untuk mengeksekusi perintah <code>systemctl</code>, dan amati *output* status serta log sistem (*journalctl*) di sebelah kanan.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12">
+                    
+                    <!-- Control Panel (Left) -->
+                    <div class="lg:col-span-4 bg-slate-50 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-200">
+                        
+                        <!-- Visual Service Status -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-8">
+                            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Target Service:</div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <i class="fas fa-globe text-2xl text-slate-700"></i>
+                                <div class="font-bold text-lg text-slate-800">nginx.service</div>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-4">A high performance web server and a reverse proxy server</p>
+                            
+                            <div class="flex items-center gap-2">
+                                <div id="status-dot" class="w-3 h-3 rounded-full bg-slate-400"></div>
+                                <span id="status-text" class="text-sm font-bold text-slate-600">inactive (dead)</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2 text-xs">
+                                <i class="fas fa-plug text-slate-400"></i>
+                                <span id="enable-text" class="font-mono text-slate-500">disabled (tidak auto-start)</span>
+                            </div>
+                        </div>
+
+                        <div class="text-sm font-bold text-slate-700 mb-3">Eksekusi Perintah Administratif:</div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="space-y-3">
+                            <button onclick="runCmd('start')" class="w-full text-left bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-mono text-sm py-2 px-4 rounded shadow-sm transition-colors group">
+                                <span class="text-brand-600 font-bold group-hover:text-brand-700">sudo systemctl start</span> nginx
+                            </button>
+                            <button onclick="runCmd('stop')" class="w-full text-left bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-mono text-sm py-2 px-4 rounded shadow-sm transition-colors group">
+                                <span class="text-red-600 font-bold group-hover:text-red-700">sudo systemctl stop</span> nginx
+                            </button>
+                            <button onclick="runCmd('restart')" class="w-full text-left bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-mono text-sm py-2 px-4 rounded shadow-sm transition-colors group">
+                                <span class="text-amber-500 font-bold group-hover:text-amber-600">sudo systemctl restart</span> nginx
+                            </button>
+                            <div class="border-t border-slate-200 my-2 pt-2"></div>
+                            <button onclick="runCmd('enable')" class="w-full text-left bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-mono text-sm py-2 px-4 rounded shadow-sm transition-colors group">
+                                <span class="text-emerald-600 font-bold group-hover:text-emerald-700">sudo systemctl enable</span> nginx
+                            </button>
+                            <button onclick="runCmd('disable')" class="w-full text-left bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-mono text-sm py-2 px-4 rounded shadow-sm transition-colors group">
+                                <span class="text-slate-600 font-bold group-hover:text-slate-800">sudo systemctl disable</span> nginx
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- Terminal Output (Right) -->
+                    <div class="lg:col-span-8 bg-term-bg p-0 flex flex-col h-[500px]">
+                        
+                        <!-- Tabs -->
+                        <div class="flex border-b border-slate-700 bg-slate-800">
+                            <button onclick="switchTab('status')" id="tab-status" class="px-6 py-3 text-sm font-bold text-white border-b-2 border-brand-500 bg-term-bg transition-colors">
+                                <i class="fas fa-info-circle mr-2"></i> Status View
+                            </button>
+                            <button onclick="switchTab('log')" id="tab-log" class="px-6 py-3 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-white transition-colors">
+                                <i class="fas fa-align-left mr-2"></i> journalctl -u nginx
+                            </button>
+                        </div>
+
+                        <!-- Systemctl Status Output -->
+                        <div id="view-status" class="flex-grow p-4 md:p-6 font-mono text-sm text-term-text overflow-y-auto term-scroll whitespace-pre-wrap">
+<!-- Injected by JS -->
+                        </div>
+
+                        <!-- Journalctl Log Output -->
+                        <div id="view-log" class="flex-grow p-4 md:p-6 font-mono text-sm text-term-text overflow-y-auto term-scroll hidden">
+                            <div class="text-slate-500 italic mb-2">-- Logs begin at Mon 2026-04-13 08:00:00 WIB, end at <span id="log-time-end"></span>. --</div>
+                            <div id="log-content" class="space-y-1">
+                                <!-- Logs Injected by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Evaluasi Teori Lanjutan -->
+        <section id="evaluasi" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Analisis Log & Keamanan</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Memahami <em>service</em> saja tidak cukup. Administrator yang andal harus tahu cara melacak kesalahan ketika sebuah layanan menolak untuk hidup (<em>Failed State</em>).</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="!mt-0 !mb-4 !border-none text-xl"><i class="fas fa-search text-brand-500 mr-2"></i> Jantung Diagnostik: journalctl</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                        Di era <code>systemd</code>, seluruh log sistem, kernel, dan aplikasi digabung ke dalam satu basis data biner terpusat yang disebut <strong>journal</strong>. Untuk membacanya, kita tidak lagi membuka <code>/var/log/syslog</code> secara manual dengan editor teks, melainkan menggunakan perintah <code>journalctl</code>.
+                    </p>
+                    <div class="bg-slate-800 p-4 rounded-xl text-slate-300 font-mono text-sm">
+                        <div class="text-xs text-slate-500 mb-1"># Melihat log khusus layanan Nginx secara live (terus memantau)</div>
+                        <span class="text-brand-400">journalctl</span> -u nginx -f
+                        
+                        <div class="text-xs text-slate-500 mt-3 mb-1"># Melihat log sistem yang error (kritis) sejak server hidup</div>
+                        <span class="text-brand-400">journalctl</span> -b -p err
+                    </div>
+                </div>
+
+                <div class="callout bg-red-50 border-red-500 text-red-900 !mb-0 h-full flex flex-col justify-center">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-3xl">🔥</span>
+                        <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-red-900 text-lg">Troubleshooting: Port Collision</h3>
+                    </div>
+                    <p class="text-sm mt-3 leading-relaxed">
+                        Kasus Industri yang Sering Terjadi: Anda mencoba menjalankan <code>systemctl start nginx</code>, namun statusnya merah <strong>FAILED</strong>. Mengapa?
+                    </p>
+                    <p class="text-sm mt-2 leading-relaxed">
+                        Jika Anda mengecek log dengan <code>journalctl -u nginx</code>, Anda biasanya akan menemukan pesan <em>"bind() to 0.0.0.0:80 failed (98: Address already in use)"</em>. Ini berarti ada aplikasi lain (misal: Apache) yang sudah lebih dulu memakai <strong>Port 80</strong> (port standar web). Dua layanan berbeda tidak bisa mendengarkan pada port yang sama persis.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. STATE MANAGEMENT
+        // ==========================================
+        let serviceState = {
+            isRunning: false,
+            isEnabled: false,
+            pid: null,
+            uptimeStr: "",
+            startTime: null
+        };
+
+        const logs = [
+            // initial fake log
+            { time: getPastTime(10), msg: "systemd[1]: nginx.service: Deactivated successfully." }
+        ];
+
+        // ==========================================
+        // 2. HELPER FUNCTIONS
+        // ==========================================
+        function getCurrentTimeStr() {
+            const now = new Date();
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = months[now.getMonth()];
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${month} ${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function getPastTime(minutesAgo) {
+            const past = new Date(new Date().getTime() - minutesAgo * 60000);
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return `${months[past.getMonth()]} ${String(past.getDate()).padStart(2, '0')} ${String(past.getHours()).padStart(2, '0')}:${String(past.getMinutes()).padStart(2, '0')}:${String(past.getSeconds()).padStart(2, '0')}`;
+        }
+
+        function addLog(message) {
+            logs.push({ time: getCurrentTimeStr(), msg: message });
+            renderLogs();
+        }
+
+        // ==========================================
+        // 3. UI RENDERING
+        // ==========================================
+        function updateDashboardUI() {
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const enTxt = document.getElementById('enable-text');
+
+            if (serviceState.isRunning) {
+                dot.className = 'w-3 h-3 rounded-full bg-term-success status-active';
+                txt.textContent = 'active (running)';
+                txt.className = 'text-sm font-bold text-emerald-600';
+            } else {
+                dot.className = 'w-3 h-3 rounded-full bg-slate-400';
+                txt.textContent = 'inactive (dead)';
+                txt.className = 'text-sm font-bold text-slate-600';
+            }
+
+            if (serviceState.isEnabled) {
+                enTxt.textContent = 'enabled (otomatis start saat boot)';
+                enTxt.className = 'font-mono text-emerald-600';
+            } else {
+                enTxt.textContent = 'disabled (tidak auto-start)';
+                enTxt.className = 'font-mono text-slate-500';
+            }
+
+            renderStatusTerminal();
+        }
+
+        function renderStatusTerminal() {
+            const out = document.getElementById('view-status');
+            
+            const dotColor = serviceState.isRunning ? 'text-term-success' : 'text-slate-500';
+            const statusLine = serviceState.isRunning 
+                ? `   Active: <span class="text-term-success font-bold">active (running)</span> since ${serviceState.uptimeStr}` 
+                : `   Active: <span class="text-slate-500 font-bold">inactive (dead)</span> since ${getCurrentTimeStr()}`;
+            
+            const loadedState = serviceState.isEnabled ? 'enabled' : 'disabled';
+            const pidLine = serviceState.isRunning ? ` Main PID: ${serviceState.pid} (nginx)\n    Tasks: 2 (limit: 4614)\n   Memory: 4.2M\n   CGroup: /system.slice/nginx.service\n           ├─${serviceState.pid} "nginx: master process /usr/sbin/nginx -g daemon on; master_process on;"\n           └─${serviceState.pid + 1} "nginx: worker process"` : '';
+
+            // Get last 3 logs
+            let recentLogsHTML = "\n";
+            const recentLogs = logs.slice(-3);
+            recentLogs.forEach(l => {
+                recentLogsHTML += `${l.time} ubuntu-server ${l.msg}\n`;
+            });
+
+            const html = `
+<span class="${dotColor}">●</span> nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/lib/systemd/system/nginx.service; <span class="${serviceState.isEnabled ? 'text-term-success' : 'text-slate-400'}">${loadedState}</span>; vendor preset: enabled)
+${statusLine}
+       Docs: man:nginx(8)
+${pidLine}
+${recentLogsHTML}
+            `;
+            out.innerHTML = html;
+        }
+
+        function renderLogs() {
+            const logContainer = document.getElementById('log-content');
+            let html = '';
+            logs.forEach(l => {
+                // simple syntax highlighting for log
+                let msgColored = l.msg
+                    .replace('Starting', '<span class="text-term-accent">Starting</span>')
+                    .replace('Started', '<span class="text-term-success">Started</span>')
+                    .replace('Stopped', '<span class="text-slate-400">Stopped</span>')
+                    .replace('Stopping', '<span class="text-term-warn">Stopping</span>')
+                    .replace('Reloaded', '<span class="text-term-success">Reloaded</span>');
+                
+                html += `<div><span class="text-slate-500">${l.time}</span> ubuntu-server ${msgColored}</div>`;
+            });
+            logContainer.innerHTML = html;
+            
+            // auto scroll to bottom
+            const viewLog = document.getElementById('view-log');
+            viewLog.scrollTop = viewLog.scrollHeight;
+        }
+
+        // ==========================================
+        // 4. ACTION CONTROLLER
+        // ==========================================
+        function runCmd(cmd) {
+            // Flash effect on terminal
+            const term = document.getElementById(document.getElementById('tab-status').classList.contains('border-brand-500') ? 'view-status' : 'view-log');
+            term.style.opacity = '0.5';
+            setTimeout(() => term.style.opacity = '1', 100);
+
+            if (cmd === 'start') {
+                if (serviceState.isRunning) {
+                    addLog("systemd[1]: nginx.service: Job nginx.service/start failed with result 'done' (already running).");
+                } else {
+                    addLog("systemd[1]: Starting A high performance web server and a reverse proxy server...");
+                    setTimeout(() => {
+                        serviceState.isRunning = true;
+                        serviceState.pid = Math.floor(Math.random() * 1000) + 5000; // random PID 5000-6000
+                        serviceState.uptimeStr = getCurrentTimeStr();
+                        addLog("systemd[1]: Started A high performance web server and a reverse proxy server.");
+                        updateDashboardUI();
+                    }, 400); // simulate slight delay
+                    return; // exit early to let timeout handle UI update
+                }
+            } 
+            else if (cmd === 'stop') {
+                if (!serviceState.isRunning) {
+                    // stopping a dead service doesn't do much in systemd, just returns
+                } else {
+                    addLog("systemd[1]: Stopping A high performance web server and a reverse proxy server...");
+                    setTimeout(() => {
+                        serviceState.isRunning = false;
+                        serviceState.pid = null;
+                        addLog("systemd[1]: nginx.service: Deactivated successfully.");
+                        addLog("systemd[1]: Stopped A high performance web server and a reverse proxy server.");
+                        updateDashboardUI();
+                    }, 300);
+                    return;
+                }
+            }
+            else if (cmd === 'restart') {
+                if (serviceState.isRunning) {
+                    addLog("systemd[1]: Stopping A high performance web server and a reverse proxy server...");
+                    addLog("systemd[1]: nginx.service: Deactivated successfully.");
+                    addLog("systemd[1]: Stopped A high performance web server and a reverse proxy server.");
+                }
+                addLog("systemd[1]: Starting A high performance web server and a reverse proxy server...");
+                setTimeout(() => {
+                    serviceState.isRunning = true;
+                    serviceState.pid = Math.floor(Math.random() * 1000) + 5000;
+                    serviceState.uptimeStr = getCurrentTimeStr();
+                    addLog("systemd[1]: Started A high performance web server and a reverse proxy server.");
+                    updateDashboardUI();
+                }, 500);
+                return;
+            }
+            else if (cmd === 'enable') {
+                if (!serviceState.isEnabled) {
+                    serviceState.isEnabled = true;
+                    addLog("systemd[1]: Created symlink /etc/systemd/system/multi-user.target.wants/nginx.service → /lib/systemd/system/nginx.service.");
+                }
+            }
+            else if (cmd === 'disable') {
+                if (serviceState.isEnabled) {
+                    serviceState.isEnabled = false;
+                    addLog("systemd[1]: Removed /etc/systemd/system/multi-user.target.wants/nginx.service.");
+                }
+            }
+
+            updateDashboardUI();
+        }
+
+        // ==========================================
+        // 5. TAB LOGIC
+        // ==========================================
+        function switchTab(tabId) {
+            const btnStatus = document.getElementById('tab-status');
+            const btnLog = document.getElementById('tab-log');
+            const viewStatus = document.getElementById('view-status');
+            const viewLog = document.getElementById('view-log');
+
+            if (tabId === 'status') {
+                btnStatus.className = "px-6 py-3 text-sm font-bold text-white border-b-2 border-brand-500 bg-term-bg transition-colors";
+                btnLog.className = "px-6 py-3 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-white transition-colors";
+                viewStatus.classList.remove('hidden');
+                viewLog.classList.add('hidden');
+            } else {
+                btnLog.className = "px-6 py-3 text-sm font-bold text-white border-b-2 border-brand-500 bg-term-bg transition-colors";
+                btnStatus.className = "px-6 py-3 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-white transition-colors";
+                viewLog.classList.remove('hidden');
+                viewStatus.classList.add('hidden');
+                
+                // Update time end
+                document.getElementById('log-time-end').textContent = getCurrentTimeStr();
+                viewLog.scrollTop = viewLog.scrollHeight;
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            updateDashboardUI();
+            renderLogs();
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 7: Manajemen Memori & Page Replacement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 700: '#0f766e', 900: '#134e4a' }, // Teal
+                        memory: { hit: '#10b981', fault: '#ef4444', empty: '#cbd5e1' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CRITICAL: Responsive Chart Container constraints */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Typography & layout consistency */
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-600 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .content-section code {
+            @apply bg-slate-100 text-brand-700 px-2 py-1 rounded-md font-mono text-sm border border-slate-200 mx-1 font-semibold;
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Memory Grid Custom Styling (No SVG) */
+        .memory-cell {
+            @apply w-10 h-10 md:w-12 md:h-12 flex items-center justify-center font-mono font-bold text-lg rounded-md border-2 transition-all duration-300;
+        }
+        .cell-empty { @apply border-slate-200 bg-slate-50 text-slate-300; }
+        .cell-filled { @apply border-slate-700 bg-white text-slate-800 shadow-sm; }
+        .cell-new { @apply border-brand-500 bg-brand-50 text-brand-700 scale-110 shadow-md; z-index: 10; }
+        
+        .status-badge {
+            @apply text-xs font-bold px-2 py-1 rounded-full text-white uppercase tracking-wider mt-2 shadow-sm;
+        }
+        .status-hit { @apply bg-emerald-500; }
+        .status-fault { @apply bg-red-500; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Teal (Brand/Memory Theme), Slate (Background), Red/Emerald (Page Fault/Hit Indicators) -->
+    <!-- Application Structure Plan: SPA ini dirancang untuk mendemistifikasi konsep abstrak 'Virtual Memory' dan 'Page Replacement'. Struktur utamanya: 1) Header & Pengantar, 2) Visualisasi Konsep Paging (Menganalogikan memori fisik vs virtual), 3) Simulator Mesin Page Replacement (Interactive Tool utama di mana user memasukkan Reference String & jumlah frame untuk melihat animasi langkah demi langkah pergantian halaman), 4) Analisis Perbandingan Algoritma (Membandingkan efisiensi FIFO, LRU, Optimal menggunakan Chart.js), dan 5) Studi Kasus Thrashing & Belady's Anomaly. Pendekatan ini mengubah deretan angka statis di buku teks menjadi tabel memori dinamis yang interaktif. -->
+    <!-- Visualization & Content Choices: 1. Konsep Virtual Memory -> Goal: Inform -> Viz: HTML Flexbox Layout -> Justification: Menjelaskan relasi Hardisk, RAM, dan Virtual Memory secara hierarkis. 2. Simulator Paging -> Goal: Compute/Change -> Viz: Dynamic HTML Grid (Vanilla JS) -> Justification: Merender tabel frame secara dinamis berdasarkan input user. Setiap langkah divisualisasikan dengan warna khusus (Hit/Fault) tanpa SVG. 3. Komparasi Algoritma -> Goal: Compare -> Viz: Bar Chart (Chart.js) -> Justification: Secara otomatis menghitung total Page Fault untuk string yang sama pada 3 algoritma berbeda, disajikan dalam bentuk grafik perbandingan instan. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-memory mr-2"></i> Modul 7 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#konsep" class="hover:text-brand-600 transition-colors">Virtual Memory</a>
+                    <a href="#simulator" class="hover:text-brand-600 transition-colors">Paging Simulator</a>
+                    <a href="#analisis" class="hover:text-brand-600 transition-colors">Analisis Algoritma</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <!-- Abstract Memory Blocks Background -->
+        <div class="absolute inset-0 opacity-10 flex p-8 pointer-events-none justify-center gap-4 flex-wrap" aria-hidden="true">
+            <div class="w-16 h-16 border-2 border-brand-500 rounded-sm"></div>
+            <div class="w-16 h-16 bg-brand-500 rounded-sm"></div>
+            <div class="w-16 h-16 border-2 border-brand-500 rounded-sm"></div>
+            <div class="w-16 h-16 bg-brand-500 rounded-sm"></div>
+            <div class="w-16 h-16 border-2 border-brand-500 rounded-sm"></div>
+            <div class="w-16 h-16 border-2 border-brand-500 rounded-sm"></div>
+            <div class="w-16 h-16 bg-brand-500 rounded-sm"></div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 7</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Simulasi Manajemen Memori & Page Replacement</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Pelajari bagaimana Linux mengelola keterbatasan RAM fisik menggunakan Memori Virtual (Swap). Hitung dan visualisasikan proses evakuasi data menggunakan algoritma FIFO, Optimal, dan LRU.
+            </p>
+            <a href="#simulator" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-th mr-2"></i> Buka Simulator Paging
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Konsep Dasar -->
+        <section id="konsep" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Memori Virtual & Page Fault</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sebuah program seringkali memiliki ukuran memori yang lebih besar dari RAM fisik yang tersedia. OS mengatasi hal ini dengan teknik <em>Paging</em> dan <em>Virtual Memory</em>.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+                
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-brand-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl"><i class="fas fa-layer-group text-brand-500 mr-2"></i> Konsep Paging</h3>
+                        <p class="text-sm !mb-0 text-slate-600">OS memecah memori logis program menjadi blok-blok kecil berukuran sama yang disebut <strong>Pages</strong>. Sementara itu, RAM fisik dibagi menjadi blok-blok yang ukurannya persis sama disebut <strong>Frames</strong>.</p>
+                    </div>
+                    
+                    <div class="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-200 border-l-4 border-l-red-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl text-red-900"><i class="fas fa-exclamation-circle text-red-500 mr-2"></i> Page Fault</h3>
+                        <p class="text-sm !mb-0 text-red-800">Terjadi ketika CPU meminta sebuah <em>Page</em> untuk diproses, tetapi <em>Page</em> tersebut ternyata <strong>belum ada di dalam RAM</strong> (Frames). OS harus menghentikan proses sementara untuk mengambil <em>Page</em> tersebut dari Hardisk (Swap).</p>
+                    </div>
+
+                    <div class="bg-emerald-50 p-6 rounded-2xl shadow-sm border border-emerald-200 border-l-4 border-l-emerald-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl text-emerald-900"><i class="fas fa-check-circle text-emerald-500 mr-2"></i> Page Hit</h3>
+                        <p class="text-sm !mb-0 text-emerald-800">Terjadi ketika CPU meminta data, dan data tersebut <strong>sudah tersedia di dalam RAM</strong>. Ini adalah kondisi ideal karena proses eksekusi menjadi sangat cepat tanpa harus mengakses Hardisk.</p>
+                    </div>
+                </div>
+
+                <!-- Abstract Visualization (No SVG) -->
+                <div class="bg-slate-800 p-8 rounded-2xl shadow-md flex flex-col justify-center h-full">
+                    <h4 class="text-white text-center font-bold mb-6 !mt-0">Mekanisme Page Replacement</h4>
+                    
+                    <div class="flex justify-between items-center gap-4 font-mono text-sm">
+                        <!-- Disk -->
+                        <div class="w-1/3 text-center">
+                            <div class="bg-slate-700 border-2 border-slate-500 rounded-lg p-4 h-40 flex flex-col justify-between relative overflow-hidden">
+                                <div class="text-slate-300 font-bold z-10 mb-2">HARDISK<br>(Virtual Mem)</div>
+                                <div class="flex gap-1 justify-center z-10">
+                                    <div class="w-6 h-6 bg-amber-500 rounded text-xs flex items-center justify-center">7</div>
+                                    <div class="w-6 h-6 bg-pink-500 rounded text-xs flex items-center justify-center">2</div>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-2 z-10">Pages antre</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrows -->
+                        <div class="w-1/3 flex flex-col items-center justify-center">
+                            <div class="text-red-400 text-xs font-bold mb-1">Swap Out (Buang)</div>
+                            <div class="text-slate-400 text-2xl">⟵</div>
+                            <div class="text-slate-400 text-2xl">⟶</div>
+                            <div class="text-emerald-400 text-xs font-bold mt-1">Swap In (Ambil)</div>
+                        </div>
+
+                        <!-- RAM -->
+                        <div class="w-1/3 text-center">
+                            <div class="bg-slate-100 border-2 border-brand-500 rounded-lg p-4 h-40 flex flex-col justify-between">
+                                <div class="text-slate-800 font-bold mb-2">RAM<br>(Frames)</div>
+                                <div class="flex flex-col gap-1 items-center">
+                                    <div class="w-8 h-6 bg-white border border-slate-300 rounded text-slate-800 text-xs flex items-center justify-center font-bold">1</div>
+                                    <div class="w-8 h-6 bg-brand-200 border border-brand-500 rounded text-brand-900 text-xs flex items-center justify-center font-bold shadow animate-pulse">2</div>
+                                    <div class="w-8 h-6 bg-white border border-slate-300 rounded text-slate-800 text-xs flex items-center justify-center font-bold">4</div>
+                                </div>
+                                <div class="text-xs text-slate-500 mt-2">Kapasitas Penuh!</div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 text-center mt-6">Saat RAM penuh, algoritma (FIFO/LRU) akan memilih satu Frame (korban) untuk ditendang kembali ke Hardisk agar Page baru bisa masuk.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Simulator Interaktif -->
+        <section id="simulator" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Simulator Page Replacement</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Masukkan deretan angka permintaan halaman memori (Reference String). Pilih kapasitas frame RAM dan algoritma yang diinginkan untuk melihat proses pengusiran data secara visual.</p>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mb-12">
+                <!-- Control Panel -->
+                <div class="bg-slate-50 p-6 md:p-8 border-b border-slate-200 flex flex-col md:flex-row gap-6 items-end">
+                    
+                    <div class="w-full md:w-1/2">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Reference String (pisahkan koma):</label>
+                        <input type="text" id="refString" value="7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1" class="w-full bg-white border border-slate-300 text-slate-800 text-sm md:text-base font-mono rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-3 outline-none shadow-sm">
+                    </div>
+                    
+                    <div class="w-full md:w-1/6">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Kapasitas Frames:</label>
+                        <input type="number" id="frameCount" value="3" min="1" max="8" class="w-full bg-white border border-slate-300 text-slate-800 text-sm md:text-base font-bold rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-3 outline-none shadow-sm">
+                    </div>
+
+                    <div class="w-full md:w-1/6">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Algoritma:</label>
+                        <select id="algoSelect" class="w-full bg-white border border-slate-300 text-slate-800 text-sm md:text-base font-bold rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-3 outline-none shadow-sm">
+                            <option value="FIFO">FIFO</option>
+                            <option value="LRU">LRU</option>
+                            <option value="OPT">Optimal</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-auto flex-grow flex justify-end">
+                        <button onclick="runSimulation()" class="w-full md:w-auto bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-lg shadow-sm transition-colors flex items-center justify-center text-sm md:text-base">
+                            <i class="fas fa-play mr-2"></i> Eksekusi
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Simulation Result Canvas -->
+                <div class="p-6 md:p-8 bg-white min-h-[300px]">
+                    
+                    <div id="welcome-state" class="flex flex-col items-center justify-center text-slate-400 py-12">
+                        <i class="fas fa-border-all text-6xl mb-4 text-slate-200"></i>
+                        <p class="text-lg">Klik "Eksekusi" untuk merender tabel memori.</p>
+                    </div>
+
+                    <div id="sim-result" class="hidden animate-[fadeIn_0.5s_ease-out]">
+                        
+                        <!-- Header Stats -->
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div>
+                                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Algoritma</span>
+                                <div class="text-2xl font-extrabold text-brand-700" id="res-algo">FIFO</div>
+                            </div>
+                            <div class="flex gap-6 text-center">
+                                <div>
+                                    <div class="text-xs font-bold text-red-500 uppercase tracking-wider">Page Faults (Miss)</div>
+                                    <div class="text-3xl font-mono font-extrabold text-red-600" id="res-faults">0</div>
+                                </div>
+                                <div class="w-px bg-slate-300"></div>
+                                <div>
+                                    <div class="text-xs font-bold text-emerald-500 uppercase tracking-wider">Page Hits</div>
+                                    <div class="text-3xl font-mono font-extrabold text-emerald-600" id="res-hits">0</div>
+                                </div>
+                                <div class="w-px bg-slate-300"></div>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fault Rate</div>
+                                    <div class="text-3xl font-mono font-extrabold text-slate-700" id="res-rate">0%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grid Table (Overflow X for long strings) -->
+                        <div class="overflow-x-auto pb-4 custom-scroll">
+                            <div class="flex gap-2 min-w-max" id="frame-grid">
+                                <!-- Dynamically generated columns -->
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-center gap-6 mt-6 text-sm text-slate-500 font-medium">
+                            <span class="flex items-center gap-2"><div class="w-3 h-3 bg-red-500 rounded-full"></div> F = Fault (Merah muda)</span>
+                            <span class="flex items-center gap-2"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div> H = Hit (Hijau)</span>
+                            <span class="flex items-center gap-2"><div class="w-4 h-4 border-2 border-brand-500 bg-brand-50 rounded"></div> Elemen baru masuk</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analisis Kinerja Algoritma -->
+        <section id="analisis" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Analisis Efisiensi & Studi Kasus</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Grafik di bawah ini membandingkan kinerja ketiga algoritma secara instan menggunakan Reference String dan kapasitas Frame yang sama persis dengan yang Anda inputkan di atas.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <!-- Comparison Chart -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="!mt-0 text-center text-lg font-bold text-slate-800 mb-2">Komparasi Total Page Faults</h3>
+                    <p class="text-center text-xs text-slate-500 mb-6">Grafik diperbarui otomatis saat Anda menekan tombol Eksekusi. Semakin rendah batang merah, semakin efisien algoritma tersebut.</p>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Theory Evaluation -->
+                <div class="space-y-6">
+                    <div class="callout bg-indigo-50 border-indigo-500 text-indigo-900 !mb-0">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-3xl">👻</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-indigo-900 text-lg">Belady's Anomaly</h3>
+                        </div>
+                        <p class="text-sm italic mt-2">"Bukankah menambah kapasitas memori (RAM/Frames) akan selalu mengurangi jumlah Page Fault?"</p>
+                        <p class="text-sm mt-3 leading-relaxed"><strong>Fakta Industri:</strong> TIDAK SELALU! Pada algoritma <strong>FIFO</strong>, menambahkan jumlah frame justru bisa meningkatkan jumlah <em>Page Fault</em>. Fenomena aneh ini disebut Anomali Belady.<br><br>Sebaliknya, algoritma Stack-based seperti <strong>LRU</strong> dan <strong>Optimal</strong> kebal terhadap anomali ini.</p>
+                    </div>
+
+                    <div class="callout bg-slate-800 border-slate-600 text-slate-200 !mb-0 shadow-lg">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-3xl">🔥</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-white text-lg">Konsekuensi Thrashing</h3>
+                        </div>
+                        <p class="text-sm leading-relaxed mt-2">Jika RAM terlalu kecil dan proses membutuhkan banyak page, OS akan terus-menerus melakukan proses sibuk <em>Swap In</em> dan <em>Swap Out</em> dari hardisk tanpa henti. Kondisi di mana CPU menghabiskan lebih banyak waktu untuk mengurus antrean memori daripada mengeksekusi program itu sendiri disebut <strong>Thrashing</strong>, yang membuat komputer macet total (hang).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <!-- CSS Animation for dynamic show -->
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
+    <script>
+        // ==========================================
+        // 1. CHART.JS COMPARISON STATE
+        // ==========================================
+        let compChart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            compChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['FIFO', 'LRU (Realistis)', 'Optimal (Teoretis)'],
+                    datasets: [{
+                        label: 'Total Page Faults',
+                        data: [0, 0, 0], // Init
+                        backgroundColor: [
+                            'rgba(244, 63, 94, 0.8)', // Red
+                            'rgba(59, 130, 246, 0.8)', // Blue
+                            'rgba(16, 185, 129, 0.8)'  // Emerald
+                        ],
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            title: { display: true, text: 'Jumlah Fault', color: '#64748b', font: {family: 'Inter', weight: 'bold'} },
+                            ticks: { stepSize: 2 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: {family: 'Inter', weight: 'bold'}, color: '#475569' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(c) { return ` ${c.raw} Page Faults`; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartData(fifo, lru, opt) {
+            if(compChart) {
+                compChart.data.datasets[0].data = [fifo, lru, opt];
+                compChart.update();
+            }
+        }
+
+        // ==========================================
+        // 2. PAGE REPLACEMENT ALGORITHMS
+        // ==========================================
+
+        function simulateFIFO(refString, fCount) {
+            let frames = [];
+            let queue = []; // To track insertion order
+            let states = [];
+            let faults = 0;
+
+            for(let i=0; i<refString.length; i++) {
+                let page = refString[i];
+                let isHit = frames.includes(page);
+                let changedIdx = -1;
+
+                if(!isHit) {
+                    faults++;
+                    if(frames.length < fCount) {
+                        frames.push(page);
+                        queue.push(page);
+                        changedIdx = frames.length - 1;
+                    } else {
+                        let evictPage = queue.shift();
+                        let evictIdx = frames.indexOf(evictPage);
+                        frames[evictIdx] = page;
+                        queue.push(page);
+                        changedIdx = evictIdx;
+                    }
+                }
+
+                states.push({
+                    reference: page,
+                    frames: [...frames], // copy
+                    isHit: isHit,
+                    changedIdx: isHit ? -1 : changedIdx
+                });
+            }
+            return { states, faults, hits: refString.length - faults };
+        }
+
+        function simulateLRU(refString, fCount) {
+            let frames = [];
+            let lastUsed = new Map(); // page -> index
+            let states = [];
+            let faults = 0;
+
+            for(let i=0; i<refString.length; i++) {
+                let page = refString[i];
+                let isHit = frames.includes(page);
+                let changedIdx = -1;
+
+                if(!isHit) {
+                    faults++;
+                    if(frames.length < fCount) {
+                        frames.push(page);
+                        changedIdx = frames.length - 1;
+                    } else {
+                        // Find least recently used
+                        let lruPage = null;
+                        let minIndex = Infinity;
+                        for(let f of frames) {
+                            if(lastUsed.get(f) < minIndex) {
+                                minIndex = lastUsed.get(f);
+                                lruPage = f;
+                            }
+                        }
+                        let evictIdx = frames.indexOf(lruPage);
+                        frames[evictIdx] = page;
+                        changedIdx = evictIdx;
+                    }
+                }
+                lastUsed.set(page, i); // Update last used time
+
+                states.push({
+                    reference: page,
+                    frames: [...frames],
+                    isHit: isHit,
+                    changedIdx: isHit ? -1 : changedIdx
+                });
+            }
+            return { states, faults, hits: refString.length - faults };
+        }
+
+        function simulateOptimal(refString, fCount) {
+            let frames = [];
+            let states = [];
+            let faults = 0;
+
+            for(let i=0; i<refString.length; i++) {
+                let page = refString[i];
+                let isHit = frames.includes(page);
+                let changedIdx = -1;
+
+                if(!isHit) {
+                    faults++;
+                    if(frames.length < fCount) {
+                        frames.push(page);
+                        changedIdx = frames.length - 1;
+                    } else {
+                        // Look ahead to find page that won't be used for longest time
+                        let farthest = -1;
+                        let evictIdx = -1;
+                        
+                        for(let j=0; j<frames.length; j++) {
+                            let nextUse = refString.indexOf(frames[j], i + 1);
+                            if(nextUse === -1) {
+                                // Never used again, evict immediately
+                                evictIdx = j;
+                                break;
+                            }
+                            if(nextUse > farthest) {
+                                farthest = nextUse;
+                                evictIdx = j;
+                            }
+                        }
+                        frames[evictIdx] = page;
+                        changedIdx = evictIdx;
+                    }
+                }
+
+                states.push({
+                    reference: page,
+                    frames: [...frames],
+                    isHit: isHit,
+                    changedIdx: isHit ? -1 : changedIdx
+                });
+            }
+            return { states, faults, hits: refString.length - faults };
+        }
+
+        // ==========================================
+        // 3. UI LOGIC & RENDERING
+        // ==========================================
+        function runSimulation() {
+            // Get inputs
+            const rawStr = document.getElementById('refString').value;
+            const refString = rawStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+            const frameCount = parseInt(document.getElementById('frameCount').value);
+            const algo = document.getElementById('algoSelect').value;
+
+            if(refString.length === 0 || frameCount < 1) {
+                alert("Input tidak valid. Harap periksa format Reference String dan Kapasitas Frame.");
+                return;
+            }
+
+            // Run primary simulation
+            let res;
+            if(algo === 'FIFO') res = simulateFIFO(refString, frameCount);
+            else if(algo === 'LRU') res = simulateLRU(refString, frameCount);
+            else res = simulateOptimal(refString, frameCount);
+
+            // Run others secretly for chart
+            const resFifo = algo === 'FIFO' ? res.faults : simulateFIFO(refString, frameCount).faults;
+            const resLru = algo === 'LRU' ? res.faults : simulateLRU(refString, frameCount).faults;
+            const resOpt = algo === 'OPT' ? res.faults : simulateOptimal(refString, frameCount).faults;
+
+            // Render Header Stats
+            document.getElementById('welcome-state').classList.add('hidden');
+            document.getElementById('sim-result').classList.remove('hidden');
+            
+            document.getElementById('res-algo').textContent = algo;
+            document.getElementById('res-faults').textContent = res.faults;
+            document.getElementById('res-hits').textContent = res.hits;
+            const rate = ((res.faults / refString.length) * 100).toFixed(1);
+            document.getElementById('res-rate').textContent = `${rate}%`;
+
+            // Render Grid
+            const gridEl = document.getElementById('frame-grid');
+            gridEl.innerHTML = '';
+
+            res.states.forEach((state, stepIndex) => {
+                // Column container
+                const col = document.createElement('div');
+                col.className = 'flex flex-col items-center gap-1';
+                
+                // Reference Header
+                const head = document.createElement('div');
+                head.className = 'font-mono font-bold text-lg text-slate-800 mb-2 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-slate-100 rounded-lg border border-slate-200 shadow-sm';
+                head.textContent = state.reference;
+                col.appendChild(head);
+
+                // Frames
+                for(let f=0; f<frameCount; f++) {
+                    const cell = document.createElement('div');
+                    let val = state.frames[f] !== undefined ? state.frames[f] : '';
+                    
+                    cell.textContent = val;
+                    
+                    if(val === '') {
+                        cell.className = 'memory-cell cell-empty';
+                    } else if (f === state.changedIdx && !state.isHit) {
+                        cell.className = 'memory-cell cell-new';
+                    } else {
+                        cell.className = 'memory-cell cell-filled';
+                    }
+                    col.appendChild(cell);
+                }
+
+                // Footer Badge (H/F)
+                const badge = document.createElement('div');
+                if(state.isHit) {
+                    badge.className = 'status-badge status-hit';
+                    badge.textContent = 'H';
+                } else {
+                    badge.className = 'status-badge status-fault';
+                    badge.textContent = 'F';
+                }
+                col.appendChild(badge);
+
+                gridEl.appendChild(col);
+            });
+
+            // Update Chart
+            updateChartData(resFifo, resLru, resOpt);
+        }
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            // Optional: Run simulation on load to show initial visual
+            // runSimulation(); 
+        });
+    </script>
+</body>
+</html>

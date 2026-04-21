@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 9: Ubuntu Server & Administrasi Jarak Jauh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#ecfeff', 100: '#cffafe', 500: '#06b6d4', 700: '#0e7490', 900: '#164e63' }, // Cyan Theme
+                        terminal: { bg: '#0f172a', text: '#38bdf8', success: '#4ade80', error: '#f87171', warn: '#facc15' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-500 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Custom Editor Styles */
+        .yaml-editor-container {
+            position: relative;
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            display: flex;
+        }
+        .line-numbers {
+            padding: 1rem 0.5rem;
+            background-color: #0f172a;
+            color: #475569;
+            text-align: right;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5rem;
+            user-select: none;
+            min-width: 2.5rem;
+        }
+        .yaml-textarea {
+            width: 100%;
+            background-color: transparent;
+            color: #e2e8f0;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5rem;
+            border: none;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        .yaml-textarea::selection {
+            background-color: #334155;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-server mr-2"></i> Modul 9 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#headless" class="hover:text-brand-600 transition-colors">Server Headless</a>
+                    <a href="#netplan" class="hover:text-brand-600 transition-colors">Netplan & Jaringan</a>
+                    <a href="#ssh" class="hover:text-brand-600 transition-colors">Remote SSH</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 flex p-8 pointer-events-none justify-around items-center opacity-10 font-mono text-brand-500 text-sm" aria-hidden="true">
+            <div class="space-y-2">
+                <div>sudo netplan apply</div>
+                <div>systemctl status sshd</div>
+                <div>ip addr show enp0s3</div>
+                <div>ssh user@192.168.1.10</div>
+            </div>
+            <div class="space-y-2 text-right">
+                <div>network:</div>
+                <div>&nbsp;&nbsp;version: 2</div>
+                <div>&nbsp;&nbsp;ethernets:</div>
+                <div>&nbsp;&nbsp;&nbsp;&nbsp;enp0s3:</div>
+            </div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-50 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 9</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Pengantar Ubuntu Server & Administrasi Jarak Jauh</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Tinggalkan kenyamanan antarmuka grafis. Pelajari arsitektur murni sebuah peladen (Server), konfigurasikan IP Statis menggunakan standar Netplan (YAML), dan hubungkan diri Anda melalui terowongan Secure Shell (SSH).
+            </p>
+            <a href="#netplan" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-network-wired mr-2"></i> Latihan Konfigurasi Netplan
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Konsep Server Headless -->
+        <section id="headless" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Arsitektur Headless: Mengapa Tanpa GUI?</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sistem Operasi untuk Server di industri hampir tidak pernah diinstal bersamaan dengan Desktop Environment (seperti GNOME atau KDE). Arsitektur tanpa monitor fisik dan tanpa grafis ini disebut <strong>Headless</strong>.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-slate-300">
+                    <h3 class="!mt-0 !mb-4 !border-none text-xl text-slate-800"><i class="fas fa-desktop text-slate-400 mr-2"></i> Lingkungan Desktop (GUI)</h3>
+                    <ul class="text-sm space-y-3 mb-0">
+                        <li><strong>Konsumsi Memori:</strong> Sangat boros. GUI (GNOME) membutuhkan minimal 1 GB hingga 2 GB RAM hanya untuk menampilkan antarmuka.</li>
+                        <li><strong>Keamanan:</strong> Memiliki jutaan baris kode tambahan (untuk *browser*, *media player*, animasi). Semakin banyak kode, semakin banyak celah eksploitasi (*Attack Surface* yang luas).</li>
+                        <li><strong>Fungsi:</strong> Dirancang untuk komputasi personal dan kenyamanan navigasi harian.</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-brand-500 transform scale-[1.02]">
+                    <h3 class="!mt-0 !mb-4 !border-none text-xl text-brand-900"><i class="fas fa-server text-brand-500 mr-2"></i> Lingkungan Server (Headless)</h3>
+                    <ul class="text-sm space-y-3 mb-0">
+                        <li><strong>Konsumsi Memori:</strong> Sangat efisien. Saat *idle*, Ubuntu Server hanya mengonsumsi sekitar 150 MB hingga 200 MB RAM. Sisa RAM bisa difokuskan untuk *Database* atau *Web Server*.</li>
+                        <li><strong>Keamanan:</strong> *Attack Surface* sangat minimalis. Hanya aplikasi penting (seperti SSH) yang berjalan.</li>
+                        <li><strong>Fungsi:</strong> Dirancang untuk stabilitas, kinerja komputasi murni, dan dikendalikan 100% dari jarak jauh via CLI.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Simulator Netplan YAML -->
+        <section id="netplan" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Konfigurasi Jaringan: Netplan & YAML</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Pada Ubuntu modern (sejak versi 18.04), pengaturan alamat IP tidak lagi menggunakan berkas teks biasa, melainkan menggunakan utilitas <strong>Netplan</strong> dengan format bahasa <strong>YAML</strong> (*YAML Ain't Markup Language*).</p>
+            </div>
+
+            <div class="callout bg-amber-50 border-amber-500 text-amber-900 mb-8">
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="fas fa-exclamation-triangle text-2xl text-amber-500"></i>
+                    <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-amber-900 text-lg">Peringatan Kritis Sintaks YAML</h3>
+                </div>
+                <p class="text-sm mt-2 leading-relaxed">
+                    YAML sangat ketat dan sensitif terhadap indentasi (lekukan). Anda <strong>TIDAK BOLEH</strong> menggunakan tombol <code>TAB</code> untuk memberikan jarak. Anda diwajibkan menggunakan ketukan tombol <strong>SPASI</strong> (biasanya kelipatan 2 spasi per anak hierarki). Satu spasi yang salah akan membuat seluruh koneksi *server* mati.
+                </p>
+            </div>
+
+            <!-- Editor Simulator -->
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 mb-12">
+                <h3 class="!mt-0 text-xl font-bold mb-2">Misi Simulator: Atur IP Statis</h3>
+                <p class="text-sm text-slate-600 mb-6">
+                    Skrip di bawah ini memiliki kesalahan (memakai DHCP padahal server butuh IP Statis) dan struktur indentasi-nya sedikit berantakan. Tugas Anda: <br>
+                    1. Matikan DHCP (ubah <code>true</code> menjadi <code>false</code> atau <code>no</code>).<br>
+                    2. Pastikan susunan hirarkinya benar menggunakan Spasi (bukan TAB).<br>
+                    3. Klik tombol "netplan apply" untuk memvalidasi.
+                </p>
+
+                <div class="yaml-editor-container border border-slate-700 shadow-inner mb-4">
+                    <div class="line-numbers" id="line-numbers">
+                        1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12
+                    </div>
+                    <textarea id="yaml-editor" class="yaml-textarea" rows="12" spellcheck="false" onkeydown="handleTab(event)" oninput="updateLineNumbers()">
+network:
+  version: 2
+  ethernets:
+    enp0s3:
+      dhcp4: true
+      addresses: [192.168.1.10/24]
+      routes:
+      - to: default
+        via: 192.168.1.1
+      nameservers:
+      addresses: [8.8.8.8, 1.1.1.1]</textarea>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div id="validation-output" class="text-sm font-mono p-3 rounded w-full md:w-2/3 bg-slate-100 text-slate-600 border border-slate-200 min-h-[3rem] flex items-center">
+                        > Menunggu eksekusi sudo netplan apply...
+                    </div>
+                    <button onclick="validateNetplan()" class="w-full md:w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
+                        <i class="fas fa-play mr-2"></i> netplan apply
+                    </button>
+                </div>
+                <div class="mt-4 text-xs text-slate-500 italic">
+                    * Hint: <code>addresses</code> milik <code>nameservers</code> harus menjorok 2 spasi ke dalam. <code>- to: default</code> juga harus menjorok 2 spasi dari <code>routes:</code>.
+                </div>
+            </div>
+        </section>
+
+        <!-- Remote Access Workflow -->
+        <section id="ssh" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Alur Akses Jarak Jauh (SSH Workflow)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Setelah Server memiliki IP Statis yang kita konfigurasi di atas, Administrator tidak lagi perlu melihat layar *server*. Semua pekerjaan dilakukan dari Terminal Laptop (Host) menggunakan protokol OpenSSH.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                
+                <!-- Step by step -->
+                <div class="lg:col-span-5 flex flex-col justify-center space-y-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative">
+                        <div class="absolute -left-3 -top-3 w-8 h-8 bg-brand-500 text-white rounded-full flex items-center justify-center font-bold shadow-md">1</div>
+                        <h4 class="font-bold text-slate-800 mb-1 ml-2">Instalasi di Server</h4>
+                        <p class="text-sm text-slate-600 ml-2">Secara *default*, layanan SSH mungkin belum berjalan. Kita harus menginstalnya di sisi Ubuntu Server.</p>
+                        <code class="block bg-slate-100 p-2 mt-2 text-xs rounded border border-slate-200 text-brand-700">sudo apt install openssh-server</code>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative">
+                        <div class="absolute -left-3 -top-3 w-8 h-8 bg-brand-500 text-white rounded-full flex items-center justify-center font-bold shadow-md">2</div>
+                        <h4 class="font-bold text-slate-800 mb-1 ml-2">Pastikan Layanan Aktif</h4>
+                        <p class="text-sm text-slate-600 ml-2">Pastikan *daemon* (layanan latar belakang) SSH telah aktif (berwarna hijau `active (running)`).</p>
+                        <code class="block bg-slate-100 p-2 mt-2 text-xs rounded border border-slate-200 text-brand-700">systemctl status sshd</code>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative">
+                        <div class="absolute -left-3 -top-3 w-8 h-8 bg-brand-500 text-white rounded-full flex items-center justify-center font-bold shadow-md">3</div>
+                        <h4 class="font-bold text-slate-800 mb-1 ml-2">Koneksi dari Laptop (Host)</h4>
+                        <p class="text-sm text-slate-600 ml-2">Buka CMD/Terminal di Laptop Anda. Lakukan *dial-up* menggunakan Username dan IP Server.</p>
+                        <code class="block bg-slate-100 p-2 mt-2 text-xs rounded border border-slate-200 text-brand-700">ssh admin@192.168.1.10</code>
+                    </div>
+                </div>
+
+                <!-- Terminal Visual -->
+                <div class="lg:col-span-7 bg-[#0f172a] rounded-2xl shadow-xl overflow-hidden border border-slate-700 flex flex-col">
+                    <div class="bg-slate-800 px-4 py-2 flex items-center gap-2 border-b border-slate-700">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <div class="mx-auto text-xs text-slate-400 font-mono">Windows PowerShell (Host Laptop)</div>
+                    </div>
+                    
+                    <div class="p-6 font-mono text-sm leading-relaxed flex-grow">
+                        <div class="text-slate-300">PS C:\Users\Mahasiswa> <span class="text-white font-bold">ssh admin@192.168.1.10</span></div>
+                        <div class="text-slate-400 mt-2">The authenticity of host '192.168.1.10 (192.168.1.10)' can't be established.</div>
+                        <div class="text-slate-400">ED25519 key fingerprint is SHA256:V+G2g1l8s5Xf...</div>
+                        <div class="text-slate-300 mt-2">Are you sure you want to continue connecting (yes/no/[fingerprint])? <span class="text-white font-bold">yes</span></div>
+                        <div class="text-yellow-400 mt-2">Warning: Permanently added '192.168.1.10' (ED25519) to the list of known hosts.</div>
+                        <div class="text-slate-300 mt-2">admin@192.168.1.10's password: <span class="text-slate-500 italic">********</span></div>
+                        
+                        <div class="mt-4 text-emerald-400">Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-100-generic x86_64)</div>
+                        <div class="text-slate-400 mt-1"> * Documentation:  https://help.ubuntu.com</div>
+                        <div class="text-slate-400"> * Management:     https://landscape.canonical.com</div>
+                        <div class="text-slate-400"> * Support:        https://ubuntu.com/pro</div>
+                        <br>
+                        <div class="text-brand-400 font-bold">admin@ubuntu-server:~$ <span class="animate-pulse">_</span></div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <script>
+        // Line numbers sync
+        function updateLineNumbers() {
+            const textarea = document.getElementById('yaml-editor');
+            const linesDiv = document.getElementById('line-numbers');
+            const lines = textarea.value.split('\n').length;
+            
+            let lineNums = '';
+            for(let i = 1; i <= lines; i++) {
+                lineNums += i + '<br>';
+            }
+            linesDiv.innerHTML = lineNums;
+        }
+
+        // Allow Tab key to insert spaces (YAML strictness)
+        function handleTab(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = e.target.selectionStart;
+                const end = e.target.selectionEnd;
+                
+                // Insert 2 spaces for tab
+                e.target.value = e.target.value.substring(0, start) + "  " + e.target.value.substring(end);
+                e.target.selectionStart = e.target.selectionEnd = start + 2;
+                
+                updateLineNumbers();
+            }
+        }
+
+        // YAML Strictness Validator Logic
+        function validateNetplan() {
+            const text = document.getElementById('yaml-editor').value;
+            const output = document.getElementById('validation-output');
+            
+            // Reset classes
+            output.className = 'text-sm font-mono p-3 rounded w-full md:w-2/3 border min-h-[3rem] flex items-center';
+
+            // 1. Check for Tabs (Fatal in YAML)
+            if (text.includes('\t')) {
+                output.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
+                output.innerHTML = '<i class="fas fa-times-circle mr-2"></i> <strong>Error Parsing YAML:</strong> Ditemukan karakter TAB. YAML hanya menerima SPASI murni.';
+                return;
+            }
+
+            const lines = text.split('\n');
+            let hasDhcpFalse = false;
+            let routeIndentationOk = false;
+            let nameserverIndentationOk = false;
+
+            // Simple line-by-line semantic check
+            for(let i=0; i<lines.length; i++) {
+                const line = lines[i];
+                
+                // Check DHCP
+                if(line.includes('dhcp4: false') || line.includes('dhcp4: no')) {
+                    hasDhcpFalse = true;
+                }
+
+                // Check routes array indentation (expecting '- to:' to be indented more than 'routes:')
+                // In proper netplan, under enp0s3 (4 spaces), routes is at 6 spaces, '- to' should be 6 or 8 spaces.
+                if(line.match(/^\s*-\s*to:/)) {
+                    const spacesCount = line.search(/\S/);
+                    // Minimal acceptable indentation for an array item under routes
+                    if(spacesCount >= 6) {
+                        routeIndentationOk = true;
+                    }
+                }
+
+                // Check nameservers addresses indentation
+                // In proper netplan, nameservers is at 6 spaces, its addresses must be at 8 spaces.
+                if(line.match(/^\s*addresses:\s*\[.*\]/)) {
+                    const spacesCount = line.search(/\S/);
+                    // The first addresses under enp0s3 is usually 6 spaces, the one under nameservers is 8 spaces.
+                    // We check if any addresses line has >= 8 spaces.
+                    if(spacesCount >= 8) {
+                        nameserverIndentationOk = true;
+                    }
+                }
+            }
+
+            if (!hasDhcpFalse) {
+                output.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
+                output.innerHTML = '<i class="fas fa-times-circle mr-2"></i> <strong>Konfigurasi Ditolak:</strong> Anda masih mengaktifkan DHCP. Ubah dhcp4 menjadi false.';
+                return;
+            }
+
+            if (!routeIndentationOk) {
+                output.classList.add('bg-amber-50', 'text-amber-700', 'border-amber-200');
+                output.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> <strong>Indentation Error:</strong> Blok <code>- to: default</code> harus menjorok lebih dalam atau sejajar (minimal 6-8 spasi) di bawah <code>routes:</code>.';
+                return;
+            }
+
+            if (!nameserverIndentationOk) {
+                output.classList.add('bg-amber-50', 'text-amber-700', 'border-amber-200');
+                output.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> <strong>Indentation Error:</strong> <code>addresses</code> milik DNS harus menjadi properti turunan (menjorok 8 spasi) di bawah <code>nameservers:</code>.';
+                return;
+            }
+
+            // Success
+            output.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+            output.innerHTML = '<i class="fas fa-check-circle mr-2 text-emerald-500"></i> <strong>Berhasil!</strong> Konfigurasi YAML valid dan IP Statis diterapkan.';
+        }
+
+        // Init line numbers on load
+        window.addEventListener('DOMContentLoaded', updateLineNumbers);
+
+    </script>
+</body>
+</html>

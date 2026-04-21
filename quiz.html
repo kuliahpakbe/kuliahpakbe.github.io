@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Evaluasi OBE - Praktikum Sistem Operasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#151e2e', 900: '#0f172a' },
+                        amber: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+        }
+
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .option-btn:hover:not(:disabled) {
+            transform: translateX(5px);
+            border-color: #f59e0b;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        .option-btn.selected-correct {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #34d399;
+        }
+
+        .option-btn.selected-wrong {
+            background-color: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #f87171;
+        }
+        
+        .option-btn.show-correct {
+            border-color: #10b981;
+            color: #34d399;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="text-slate-200 font-sans antialiased relative selection:bg-amber-500/30 selection:text-amber-200">
+
+    <!-- Interactive Canvas Background (Amber Theme) -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Ambient Glows -->
+    <div class="fixed top-0 right-0 w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[150px] pointer-events-none z-0"></div>
+    <div class="fixed bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none z-0"></div>
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+        <!-- Header Nav -->
+        <header class="w-full p-6 lg:px-12 flex justify-between items-center border-b border-white/5 bg-slate-900/50 backdrop-blur-md">
+            <a href="index.html" class="flex items-center space-x-2 text-slate-400 hover:text-amber-400 transition-colors group text-sm font-medium">
+                <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                <span>Kembali ke Dashboard</span>
+            </a>
+            <div class="text-right">
+                <h1 class="text-lg md:text-xl font-bold text-white tracking-tight">Kuis Evaluasi CPMK</h1>
+                <p class="text-xs text-amber-500 font-mono">Sistem Operasi (KPT0502219)</p>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="flex-grow flex items-center justify-center p-4 md:p-8" id="main-container">
+            
+            <!-- VIEW 0: REGISTRATION FORM -->
+            <div id="view-registration" class="w-full max-w-lg animate-slide-up">
+                <div class="glass-panel rounded-3xl p-8 md:p-10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/20 rounded-full blur-[50px] -mr-10 -mt-10"></div>
+                    
+                    <div class="text-center mb-8 relative z-10">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-slate-700 text-amber-500 mb-4 shadow-lg">
+                            <i class="fas fa-user-graduate text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">Identitas Praktikan</h2>
+                        <p class="text-slate-400 text-sm">Silakan isi formulir identitas di bawah ini sebelum memulai kuis evaluasi berbasis OBE.</p>
+                    </div>
+
+                    <div class="space-y-5 relative z-10">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2" for="input-npm">Nomor Pokok Mahasiswa (NPM)</label>
+                            <input type="text" id="input-npm" placeholder="Contoh: 24.0504.0001" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-mono" required autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2" for="input-nama">Nama Lengkap</label>
+                            <input type="text" id="input-nama" placeholder="Masukkan nama lengkap Anda" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all" required autocomplete="off">
+                        </div>
+                        
+                        <div id="reg-error" class="text-red-400 text-sm hidden flex items-center mt-2">
+                            <i class="fas fa-exclamation-triangle mr-2"></i> Harap isi Nama dan NPM terlebih dahulu.
+                        </div>
+
+                        <button onclick="submitRegistration()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-amber-600/30 flex items-center justify-center mt-6 group">
+                            <span>Mulai Sesi Kuis</span>
+                            <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 1: GROUP SELECTION MENU (Hidden initially) -->
+            <div id="view-menu" class="w-full max-w-5xl hidden animate-slide-up">
+                <div class="text-center mb-10">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/20 text-amber-500 mb-4 border border-amber-500/30">
+                        <i class="fas fa-tasks text-2xl"></i>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-3">Pilih Kelompok Evaluasi</h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">Kuis komprehensif ini dirancang untuk mengukur Capaian Pembelajaran Mata Kuliah (CPMK) Anda berdasarkan pemetaan silabus OBE. Pilih salah satu kelompok uji di bawah ini.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Group 1 Card -->
+                    <button onclick="startQuiz('group1')" class="text-left glass-panel rounded-2xl p-6 group hover:-translate-y-2 transition-all duration-300 border-t-4 border-t-blue-500 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">CPMK 1 & 2</div>
+                        <div class="text-blue-400 mb-3"><i class="fas fa-microchip text-3xl"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">Fondasi Sistem & Core</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed mb-4">Menguji pemahaman tentang arsitektur Hypervisor, struktur direktori Linux, Hak Akses, Process Tree, serta simulasi CPU Scheduling & Memori.</p>
+                        <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider bg-slate-800/50 inline-block px-2 py-1 rounded">Cakupan: Modul 1 - 7</div>
+                    </button>
+
+                    <!-- Group 2 Card -->
+                    <button onclick="startQuiz('group2')" class="text-left glass-panel rounded-2xl p-6 group hover:-translate-y-2 transition-all duration-300 border-t-4 border-t-amber-500 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">CPMK 4</div>
+                        <div class="text-amber-400 mb-3"><i class="fas fa-terminal text-3xl"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">Otomasi & Manajemen Kode</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed mb-4">Evaluasi pemahaman Version Control System (Git) dan penerapan pemrograman defensif dalam otomatisasi Bash Shell Scripting.</p>
+                        <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider bg-slate-800/50 inline-block px-2 py-1 rounded">Cakupan: Modul 8 & 10</div>
+                    </button>
+
+                    <!-- Group 3 Card -->
+                    <button onclick="startQuiz('group3')" class="text-left glass-panel rounded-2xl p-6 group hover:-translate-y-2 transition-all duration-300 border-t-4 border-t-emerald-500 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">CPMK 3 & 5</div>
+                        <div class="text-emerald-400 mb-3"><i class="fas fa-server text-3xl"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">Infrastruktur Server</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed mb-4">Fokus pada administrasi Headless Server, IP Statis (Netplan), manajemen Service (systemctl), dan konfigurasi LAMP Stack serta Firewall (UFW).</p>
+                        <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider bg-slate-800/50 inline-block px-2 py-1 rounded">Cakupan: Modul 9, 11, 12</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW 2: QUIZ ACTIVE AREA (Hidden by default) -->
+            <div id="view-quiz" class="w-full max-w-3xl hidden animate-fade-in">
+                
+                <!-- Quiz Header -->
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <button onclick="exitQuiz()" class="text-xs text-slate-400 hover:text-white mb-2 flex items-center transition-colors">
+                            <i class="fas fa-times-circle mr-1"></i> Batal & Keluar
+                        </button>
+                        <h2 id="quiz-title" class="text-2xl font-bold text-white">Judul Kuis</h2>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-slate-400">Soal <span id="q-current" class="text-amber-400 font-bold text-lg">1</span> dari <span id="q-total">5</span></div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-800 rounded-full h-1.5 mb-8 overflow-hidden">
+                    <div id="progress-bar" class="bg-gradient-to-r from-amber-500 to-amber-300 h-1.5 rounded-full transition-all duration-300" style="width: 20%"></div>
+                </div>
+
+                <!-- Question Container -->
+                <div class="glass-panel rounded-2xl p-6 md:p-8 mb-6">
+                    <div id="question-text" class="text-lg md:text-xl text-white font-medium mb-6 leading-relaxed">
+                        Pertanyaan akan dimuat di sini...
+                    </div>
+                    
+                    <!-- Code Snippet Area (Optional, toggled via JS) -->
+                    <div id="code-snippet-container" class="hidden mb-6 bg-slate-900 border border-slate-700 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-x-auto">
+                        <pre><code id="code-snippet-text"></code></pre>
+                    </div>
+
+                    <!-- Options Grid -->
+                    <div id="options-container" class="flex flex-col space-y-3">
+                        <!-- Options generated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- Action Footer -->
+                <div class="flex justify-between items-center">
+                    <div id="feedback-area" class="text-sm font-medium">
+                        <!-- Feedback (Benar/Salah) appears here after selection -->
+                    </div>
+                    <button id="btn-next" onclick="nextQuestion()" class="hidden bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-amber-600/30 flex items-center">
+                        <span>Selanjutnya</span> <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <button id="btn-finish" onclick="finishQuiz()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-emerald-600/30 flex items-center">
+                        <span>Selesai & Lihat Nilai</span> <i class="fas fa-check ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW 3: RESULTS AREA (Hidden by default) -->
+            <div id="view-results" class="w-full max-w-2xl hidden animate-slide-up text-center">
+                <div class="glass-panel rounded-3xl p-10 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-amber-500/10 to-transparent"></div>
+                    
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-bold text-white mb-2">Evaluasi Selesai!</h2>
+                        <p id="result-student-info" class="text-amber-400 font-bold text-lg mb-1">Nama Mahasiswa (NPM)</p>
+                        <p id="result-group-title" class="text-slate-400 text-sm mb-8">Kelompok: Nama Kelompok</p>
+
+                        <!-- Score Circle -->
+                        <div class="inline-flex items-center justify-center w-40 h-40 rounded-full border-8 border-slate-800 relative mb-6 bg-slate-900/50 shadow-inner">
+                            <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle id="score-circle-bg" cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="8"></circle>
+                                <circle id="score-circle-fg" cx="50" cy="50" r="45" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283" class="transition-all duration-1000 ease-out"></circle>
+                            </svg>
+                            <div class="text-center">
+                                <span id="score-text" class="text-4xl font-black text-white block leading-none">0</span>
+                                <span class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1 block">Skor</span>
+                            </div>
+                        </div>
+
+                        <div id="result-message" class="text-lg font-medium mb-8">
+                            <!-- Pesan dinamis berdasarkan skor -->
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                            <button onclick="resetToMenu()" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors">
+                                <i class="fas fa-home mr-2"></i> Kembali ke Menu Kuis
+                            </button>
+                            <button onclick="retryQuiz()" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-lg shadow-amber-600/20">
+                                <i class="fas fa-redo-alt mr-2"></i> Ulangi Kuis Ini
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- DATA KUIS DAN LOGIKA JAVASCRIPT -->
+    <script>
+        // --- 1. KONFIGURASI KUIS & DATABASE ---
+        const MAX_QUESTIONS_PER_SESSION = 50; // Menampilkan hingga 50 soal acak per sesi
+
+        const quizDB = {
+            group1: {
+                title: "Fondasi Sistem & Interaksi Core",
+                questions: [
+                    { text: "Dalam arsitektur virtualisasi, Oracle VM VirtualBox diklasifikasikan sebagai apa?", code: null, options: ["Hypervisor Tipe 1", "Hypervisor Tipe 2", "Container Engine", "Kernel VM"], correct: 1, explanation: "VirtualBox berjalan sebagai aplikasi di atas OS Host, menjadikannya Hypervisor Tipe 2." },
+                    { text: "Anda mengeksekusi perintah chmod 750 /opt/proyek. Apa arti hak akses 'Others'?", code: null, options: ["Read & Execute", "Full Access", "Tidak ada hak akses", "Read Only"], correct: 2, explanation: "Angka terakhir (0) berarti tidak ada izin r, w, maupun x." },
+                    { text: "Perintah kill -9 (SIGKILL) pada layanan basis data sangat dilarang karena...", code: null, options: ["Me-restart server otomatis", "Memicu serangan DoS", "Menyebabkan korupsi data", "Menghapus user root"], correct: 2, explanation: "Sinyal 9 tidak memberi waktu database untuk clean up, memicu korupsi data permanen." },
+                    { text: "Fenomena cacat di mana proses kecil mengantre lama di belakang satu proses raksasa disebut...", code: null, options: ["Thrashing", "Context Switch", "Belady's Anomaly", "Convoy Effect"], correct: 3, explanation: "Convoy Effect sering terjadi pada algoritma FCFS." },
+                    { text: "Algoritma Page Replacement manakah yang kebal terhadap Belady's Anomaly?", code: null, options: ["FIFO", "LRU", "SJF", "Round Robin"], correct: 1, explanation: "LRU dan Optimal adalah Stack Algorithms yang secara matematis kebal terhadap anomali Belady." },
+                    { text: "Direktori manakah di Linux (FHS) yang berisi berkas konfigurasi sistem text-murni?", code: null, options: ["/bin", "/home", "/dev", "/etc"], correct: 3, explanation: "/etc adalah pusat konfigurasi teks murni di Linux." },
+                    { text: "Simbol apakah yang merepresentasikan direktori 'Parent' (satu tingkat di atas) pada path relatif?", code: null, options: ["~", ".", "..", "/"], correct: 2, explanation: "Titik ganda (..) membawa navigasi naik satu tingkat hierarki." },
+                    { text: "Perintah apa yang digunakan untuk mengetahui lokasi absolut direktori terminal saat ini?", code: null, options: ["pwd", "ls", "cd", "whereis"], correct: 0, explanation: "pwd (Print Working Directory) mencetak path absolut saat ini." },
+                    { text: "Apa arti status 'Z' pada output pemantauan tabel proses Linux?", code: null, options: ["Zipped", "Zombie", "Zero-day", "Z-index"], correct: 1, explanation: "Zombie process (Defunct) adalah proses yang sudah mati namun masih ada di tabel antrean." },
+                    { text: "Utilitas mana yang menampilkan pemantauan proses secara dinamis/real-time interaktif?", code: null, options: ["ps aux", "pstree", "htop", "kill"], correct: 2, explanation: "htop menampilkan dashboard real-time penggunaan CPU/RAM yang lebih modern dari top." },
+                    { text: "Karakter apa yang ditambahkan di akhir perintah terminal agar berjalan di Background?", code: null, options: ["$", "&", "%", "!"], correct: 1, explanation: "Ampersand (&) melempar job ke latar belakang (background) agar terminal tidak terkunci." },
+                    { text: "Shortcut apa yang digunakan untuk mensuspensi (menidurkan) proses di Foreground?", code: null, options: ["Ctrl + C", "Ctrl + D", "Ctrl + X", "Ctrl + Z"], correct: 3, explanation: "Ctrl + Z mengirim sinyal SIGTSTP untuk menjeda (suspend) proses." },
+                    { text: "Perintah untuk mengubah kepemilikan (ownership) sebuah file/direktori adalah...", code: null, options: ["chmod", "chown", "chgrp", "chuser"], correct: 1, explanation: "chown (Change Owner) digunakan untuk mengubah pemilik dan grup dari suatu objek file." },
+                    { text: "Algoritma penjadwalan CPU manakah yang memberikan jatah waktu baku (Time Quantum)?", code: null, options: ["FCFS", "SJF", "SRTF", "Round Robin"], correct: 3, explanation: "Round Robin membagi waktu CPU secara melingkar berdasarkan Time Slice/Quantum." },
+                    { text: "Direktori tempat perangkat keras (Hardware) diabstraksikan sebagai file adalah...", code: null, options: ["/etc", "/dev", "/media", "/bin"], correct: 1, explanation: "/dev (Devices) berisi representasi fisik perangkat seperti /dev/sda." }
+                    // Anda dapat menambahkan soal ke-16 hingga 50 di sini dengan format yang sama
+                ]
+            },
+            group2: {
+                title: "Otomasi & Manajemen Kode",
+                questions: [
+                    { text: "Karakter mutlak pada baris pertama bash script untuk memberitahu Kernel tentang program interpreter disebut...", code: null, options: ["Hashbang / Shebang", "Double Slashes", "Asterisk", "Dollar Sign"], correct: 0, explanation: "Shebang (misal #!/bin/bash) mendefinisikan interpreter eksekusi." },
+                    { text: "Variabel spesial apa yang mengecek Exit Code perintah sebelumnya pada Defensive Programming?", code: null, options: ["$1", "$?", "$#", "$$"], correct: 1, explanation: "Variabel $? menampung Exit Status. Angka 0 berarti sukses." },
+                    { text: "Apa status file di Git yang telah di- `git add` namun belum di- `git commit`?", code: null, options: ["Untracked", "Modified", "Staged", "Committed"], correct: 2, explanation: "Perintah git add memindahkan file ke Staging Area (Index)." },
+                    { text: "Perintah aman untuk membatalkan komit publik tanpa merusak sejarah repositori adalah...", code: null, options: ["git reset --hard", "git revert", "git rm", "git destroy"], correct: 1, explanation: "git revert membuat commit kebalikan baru dengan sangat aman untuk kolaborasi." },
+                    { text: "Berkas khusus untuk memerintahkan Git mengabaikan file tertentu (seperti log) adalah...", code: null, options: [".gitconfig", ".gitignore", ".gitmodules", ".githook"], correct: 1, explanation: ".gitignore mendata file/folder yang tidak boleh di-track oleh Git." },
+                    { text: "Cara mendeklarasikan variabel yang benar secara sintaks di Bash adalah...", code: null, options: ["NAMA = Budi", "NAMA='Budi'", "$NAMA=Budi", "var NAMA='Budi'"], correct: 1, explanation: "Bash melarang penggunaan spasi di sekitar tanda sama dengan (=)." },
+                    { text: "Variabel $1 di dalam shell script merepresentasikan...", code: null, options: ["Nama script", "Argumen pertama", "Jumlah argumen", "PID script"], correct: 1, explanation: "Parameter posisional $1 mengambil input argumen pertama dari eksekusi." },
+                    { text: "Dalam blok: if [ -d \"$DIR\" ], fungsi flag -d adalah untuk mengecek...", code: null, options: ["Apakah file dihapus", "Apakah objek berupa direktori", "Apakah ukuran disk penuh", "Apakah daemon berjalan"], correct: 1, explanation: "Flag -d mengevaluasi eksistensi sebuah Direktori secara spesifik." },
+                    { text: "Perintah menyalin repositori Git dari internet ke komputer lokal adalah...", code: null, options: ["git push", "git pull", "git clone", "git copy"], correct: 2, explanation: "git clone menduplikasi seluruh sejarah repositori remote ke komputer lokal." },
+                    { text: "Perbedaan utama Git dengan SVN masa lalu adalah...", code: null, options: ["Git berbayar", "Git berbasis Centralized", "Git berbasis Distributed", "Git hanya untuk Linux"], correct: 2, explanation: "Git adalah Distributed VCS (setiap klien punya salinan utuh repositori)." },
+                    { text: "Sintaks untuk menangkap output perintah ke dalam variabel (Command Substitution) adalah...", code: null, options: ["$(perintah)", "${perintah}", "$[perintah]", "$<perintah>"], correct: 0, explanation: "Format $(date) akan menangkap hasil output eksekusi program date." },
+                    { text: "Perintah Linux untuk membuat arsip kompresi .tar.gz adalah...", code: null, options: ["zip -r", "tar -czvf", "compress -a", "rar -x"], correct: 1, explanation: "Utilitas tar (Tape Archive) dengan flag z mengompres gzip." },
+                    { text: "Daemon sistem Linux untuk penjadwalan eksekusi otomatis (misal tiap jam 3 pagi) adalah...", code: null, options: ["systemd", "bash", "cron", "rsyslog"], correct: 2, explanation: "Cron menggunakan ekspresi crontab untuk otomasi terjadwal." },
+                    { text: "Perintah Git untuk mengecek file mana saja yang berubah (Modified/Untracked) di Working Directory adalah...", code: null, options: ["git diff", "git log", "git status", "git check"], correct: 2, explanation: "git status menampilkan keadaan State Working Directory dan Staging." },
+                    { text: "Error '^M bad interpreter' saat menjalankan skrip yang dibuat di Notepad Windows dapat diperbaiki dengan...", code: null, options: ["chmod +x", "dos2unix", "apt update", "nano"], correct: 1, explanation: "dos2unix mengubah format end-of-line CRLF Windows menjadi LF standar Linux." }
+                    // Anda dapat menambahkan soal ke-16 hingga 50 di sini
+                ]
+            },
+            group3: {
+                title: "Administrasi Server & Infrastruktur Layanan",
+                questions: [
+                    { text: "Format struktur berkas apa yang digunakan oleh utilitas Netplan pada Ubuntu 22.04?", code: null, options: [".ini", ".conf", ".xml", ".yaml"], correct: 3, explanation: "Netplan mutlak menggunakan format YAML yang sensitif terhadap spasi/indentasi." },
+                    { text: "Perintah systemctl untuk membuat layanan menyala otomatis saat server booting adalah...", code: null, options: ["systemctl start", "systemctl reload", "systemctl enable", "systemctl boot"], correct: 2, explanation: "Perintah enable menciptakan symlink autostart di systemd." },
+                    { text: "Perintah memantau log layanan apache2 secara live/real-time adalah...", code: null, options: ["journalctl -u apache2 --since today", "tail -f /var/log/apache2", "journalctl -u apache2 -f", "systemctl status apache2 --live"], correct: 2, explanation: "Flag -f (follow) pada journalctl digunakan untuk live tailing." },
+                    { text: "Prinsip 'Default Deny' pada inisialisasi Firewall (UFW) bermakna...", code: null, options: ["Blokir login root", "Blokir trafik masuk yang tak diizinkan", "Tolak ping (ICMP)", "Hapus IP penyusup"], correct: 1, explanation: "Menutup seluruh port masuk asali, lalu administrator membukanya satu per satu." },
+                    { text: "Modul pustaka yang harus diinstal agar Apache dapat mengeksekusi PHP adalah...", code: null, options: ["libapache2-mod-python", "nodejs", "libapache2-mod-php", "php-cli"], correct: 2, explanation: "libapache2-mod-php bertindak sebagai jembatan penerjemah untuk Apache." },
+                    { text: "Keuntungan utama arsitektur OS Server Headless (tanpa GUI) adalah...", code: null, options: ["Grafis lebih tajam", "Menghemat RAM & mengurangi attack surface", "Wajib bayar lisensi", "Hanya bisa diakses root"], correct: 1, explanation: "Tanpa memuat GUI, kapasitas RAM difokuskan untuk layanan murni." },
+                    { text: "Mode jaringan VirtualBox yang mengisolasi VM dengan PC Host menjadi Private LAN tertutup adalah...", code: null, options: ["NAT", "Bridged Adapter", "Host-Only Adapter", "Internal Network"], correct: 2, explanation: "Host-Only menyediakan rute langsung tanpa gangguan NAT/Bridge jaringan kampus." },
+                    { text: "Di file manakah administrator mengubah konfigurasi Port default SSH (22)?", code: null, options: ["/etc/ssh/sshd_config", "/etc/netplan.yaml", "/etc/ssh/ssh_config", "/etc/port.conf"], correct: 0, explanation: "sshd_config adalah berkas konfigurasi daemon peladen (Server) SSH." },
+                    { text: "Utilitas untuk menghapus pengguna anonim dan memblokir remote login root di MySQL adalah...", code: null, options: ["mysql_secure_installation", "mysql_harden", "ufw enable", "chmod 600 mysql"], correct: 0, explanation: "Ini adalah skrip otomatisasi hardening keamanan bawaan MariaDB/MySQL." },
+                    { text: "Siapakah The Mother of All Processes (PID 1) di Ubuntu Server 22.04?", code: null, options: ["bash", "init", "systemd", "kernel"], correct: 2, explanation: "systemd adalah daemon manajer utama yang mengendalikan seluruh layanan." },
+                    { text: "Apa yang terjadi jika Anda menginstal Apache saat layanan Nginx sedang berjalan?", code: null, options: ["Keduanya berjalan normal", "Apache otomatis menghapus Nginx", "Terjadi tabrakan Port 80 (Address already in use)", "Server crash"], correct: 2, explanation: "Secara fungsional, hanya 1 aplikasi yang boleh menggunakan 1 port jaringan." },
+                    { text: "Direktif ExecStart di dalam Unit File nginx.service berguna untuk...", code: null, options: ["Mendefinisikan port", "Menentukan path biner untuk eksekusi", "Menghapus log", "Restart otomatis"], correct: 1, explanation: "ExecStart mendefinisikan lokasi file biner komando yang dieksekusi saat start." },
+                    { text: "Perintah diagnostik untuk memprofil layanan mana yang membuat booting lambat adalah...", code: null, options: ["systemd-analyze blame", "htop", "journalctl --boot", "ps aux"], correct: 0, explanation: "Blame mencetak daftar layanan beserta durasi inisialisasinya dalam millidetik." },
+                    { text: "Opsi journalctl untuk memaksa penghapusan log biner lama agar kapasitas hardisk lega adalah...", code: null, options: ["--clear", "--vacuum-size=", "--delete", "--empty"], correct: 1, explanation: "Misal: --vacuum-size=100M digunakan memangkas log menjadi maksimal 100MB." },
+                    { text: "Direktori default Document Root untuk meletakkan file kodingan web pada Apache adalah...", code: null, options: ["/home/web", "/usr/share/nginx", "/var/www/html", "/opt/lampp"], correct: 2, explanation: "/var/www/html adalah standar direktori publik web Ubuntu." }
+                    // Anda dapat menambahkan soal ke-16 hingga 50 di sini
+                ]
+            }
+        };
+
+        // --- 2. QUIZ STATE VARIABLES ---
+        let studentName = '';
+        let studentNPM = '';
+        let currentGroup = '';
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        // --- 3. DOM ELEMENTS ---
+        const viewRegistration = document.getElementById('view-registration');
+        const viewMenu = document.getElementById('view-menu');
+        const viewQuiz = document.getElementById('view-quiz');
+        const viewResults = document.getElementById('view-results');
+        
+        const elQuizTitle = document.getElementById('quiz-title');
+        const elQCurrent = document.getElementById('q-current');
+        const elQTotal = document.getElementById('q-total');
+        const elProgressBar = document.getElementById('progress-bar');
+        const elQuestionText = document.getElementById('question-text');
+        const elCodeSnippetContainer = document.getElementById('code-snippet-container');
+        const elCodeSnippetText = document.getElementById('code-snippet-text');
+        const elOptionsContainer = document.getElementById('options-container');
+        
+        const elFeedbackArea = document.getElementById('feedback-area');
+        const btnNext = document.getElementById('btn-next');
+        const btnFinish = document.getElementById('btn-finish');
+
+        // --- 4. LOGIC FUNCTIONS ---
+
+        function submitRegistration() {
+            const inputNama = document.getElementById('input-nama').value.trim();
+            const inputNpm = document.getElementById('input-npm').value.trim();
+            const errBox = document.getElementById('reg-error');
+
+            if (!inputNama || !inputNpm) {
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            studentName = inputNama;
+            studentNPM = inputNpm;
+            errBox.classList.add('hidden');
+
+            // Pindah ke menu pemilihan kuis
+            viewRegistration.classList.add('hidden');
+            viewMenu.classList.remove('hidden');
+        }
+
+        // Fungsi Pengacak Array (Algoritma Fisher-Yates Shuffle)
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function startQuiz(groupId) {
+            currentGroup = groupId;
+            
+            // 1. Ambil seluruh bank soal berdasarkan kelompok
+            const allQuestions = quizDB[groupId].questions;
+            
+            // 2. Acak urutan soal secara dinamis setiap sesi baru
+            const shuffledQuestions = shuffleArray(allQuestions);
+            
+            // 3. Batasi subset soal sesuai MAX_QUESTIONS_PER_SESSION (mencegah kelelahan)
+            currentQuestions = shuffledQuestions.slice(0, Math.min(MAX_QUESTIONS_PER_SESSION, shuffledQuestions.length));
+            
+            currentQuestionIndex = 0;
+            score = 0;
+
+            // Setup UI
+            elQuizTitle.textContent = quizDB[groupId].title;
+            elQTotal.textContent = currentQuestions.length;
+            
+            // Switch views
+            viewMenu.classList.add('hidden');
+            viewQuiz.classList.remove('hidden');
+
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            answered = false;
+            const q = currentQuestions[currentQuestionIndex];
+            
+            // Update Headers & Progress
+            elQCurrent.textContent = currentQuestionIndex + 1;
+            const progressPct = ((currentQuestionIndex) / currentQuestions.length) * 100;
+            elProgressBar.style.width = `${progressPct}%`;
+
+            // Setup Text
+            elQuestionText.textContent = q.text;
+
+            // Setup Code Snippet
+            if (q.code) {
+                elCodeSnippetText.textContent = q.code;
+                elCodeSnippetContainer.classList.remove('hidden');
+            } else {
+                elCodeSnippetContainer.classList.add('hidden');
+            }
+
+            // Setup Options
+            elOptionsContainer.innerHTML = '';
+            q.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full text-left bg-slate-800/80 border border-slate-700 p-4 rounded-xl text-slate-300 font-medium text-sm md:text-base focus:outline-none';
+                
+                // Construct inner HTML with letters A, B, C, D
+                const letter = String.fromCharCode(65 + index);
+                btn.innerHTML = `<span class="inline-block w-6 h-6 rounded bg-slate-700 text-center leading-6 text-xs mr-3 font-bold text-slate-400">${letter}</span> ${optText}`;
+                
+                btn.onclick = () => selectOption(index, btn);
+                elOptionsContainer.appendChild(btn);
+            });
+
+            // Reset Footer
+            elFeedbackArea.innerHTML = '';
+            btnNext.classList.add('hidden');
+            btnFinish.classList.add('hidden');
+        }
+
+        function selectOption(selectedIndex, btnElement) {
+            if (answered) return;
+            answered = true;
+
+            const q = currentQuestions[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+            
+            const allOptions = elOptionsContainer.children;
+            
+            // Disable all buttons
+            for (let i = 0; i < allOptions.length; i++) {
+                allOptions[i].disabled = true;
+                allOptions[i].classList.remove('hover:-translate-x-1');
+                
+                if (i === q.correct) {
+                    allOptions[i].classList.add('show-correct');
+                }
+            }
+
+            if (isCorrect) {
+                score++;
+                btnElement.classList.remove('show-correct');
+                btnElement.classList.add('selected-correct');
+                elFeedbackArea.innerHTML = `<span class="text-emerald-400"><i class="fas fa-check-circle mr-1"></i> Tepat Sekali!</span> <p class="text-xs text-slate-400 mt-1 max-w-sm font-normal">${q.explanation}</p>`;
+            } else {
+                btnElement.classList.add('selected-wrong');
+                elFeedbackArea.innerHTML = `<span class="text-red-400"><i class="fas fa-times-circle mr-1"></i> Kurang Tepat.</span> <p class="text-xs text-slate-400 mt-1 max-w-sm font-normal">${q.explanation}</p>`;
+            }
+
+            // Show Next or Finish button
+            if (currentQuestionIndex < currentQuestions.length - 1) {
+                btnNext.classList.remove('hidden');
+            } else {
+                btnFinish.classList.remove('hidden');
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        async function finishQuiz() {
+            // Ubah tombol menjadi status loading agar mahasiswa tahu sedang proses
+            btnFinish.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menyimpan...';
+            btnFinish.disabled = true;
+
+            const finalScore = Math.round((score / currentQuestions.length) * 100);
+            const groupTitle = quizDB[currentGroup].title;
+
+            // --- KODE BARU: MENGIRIM DATA KE GOOGLE SHEET ---
+            // GANTI string di bawah ini dengan URL Web App dari Google Apps Script Anda
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbwjKCh4qVkbC-cB3HW8l8qG5tHSlPbW_Ta1zBAJ8MfdNQGjrazZnEBEYfFI3J8g1JUu/exec'; 
+            
+            if (scriptURL !== 'https://script.google.com/macros/s/AKfycbwjKCh4qVkbC-cB3HW8l8qG5tHSlPbW_Ta1zBAJ8MfdNQGjrazZnEBEYfFI3J8g1JUu/exec') {
+                const formData = new FormData();
+                formData.append('nama', studentName);
+                formData.append('npm', studentNPM);
+                formData.append('kelompok', groupTitle);
+                formData.append('skor', finalScore);
+
+                try {
+                    await fetch(scriptURL, { 
+                        method: 'POST', 
+                        body: formData, 
+                        mode: 'no-cors' // Wajib agar tidak diblokir oleh sistem keamanan Browser
+                    });
+                    console.log('Nilai berhasil direkam ke Spreadsheet.');
+                } catch (error) {
+                    console.error('Gagal mengirim data!', error.message);
+                }
+            }
+            // ------------------------------------------------
+
+            // Final progress bar fill
+            elProgressBar.style.width = '100%';
+            
+            setTimeout(() => {
+                // Kembalikan status tombol seperti semula untuk pemakaian berikutnya
+                btnFinish.innerHTML = '<span>Selesai & Lihat Nilai</span> <i class="fas fa-check ml-2"></i>';
+                btnFinish.disabled = false;
+
+                viewQuiz.classList.add('hidden');
+                viewResults.classList.remove('hidden');
+                
+                document.getElementById('result-student-info').textContent = `${studentName} - ${studentNPM}`;
+                document.getElementById('result-group-title').textContent = `Topik: ${quizDB[currentGroup].title}`;
+                
+                const finalScore = Math.round((score / currentQuestions.length) * 100);
+                document.getElementById('score-text').textContent = finalScore;
+                
+                // Animate SVG Circle
+                const circle = document.getElementById('score-circle-fg');
+                const offset = 283 - (283 * finalScore) / 100;
+                
+                // Brief delay to allow rendering before CSS transition
+                setTimeout(() => {
+                    circle.style.strokeDashoffset = offset;
+                    
+                    // Color logic based on score
+                    if (finalScore >= 80) circle.setAttribute('stroke', '#10b981'); // Emerald
+                    else if (finalScore >= 60) circle.setAttribute('stroke', '#f59e0b'); // Amber
+                    else circle.setAttribute('stroke', '#ef4444'); // Red
+                }, 100);
+
+                // Set Message
+                const msgEl = document.getElementById('result-message');
+                if (finalScore >= 80) {
+                    msgEl.innerHTML = `<span class="text-emerald-400">Kompeten (Sangat Baik)</span><p class="text-sm text-slate-400 mt-2 font-normal">Anda telah menguasai CPMK pada modul ini dengan sangat kuat. Siap untuk administrasi server tingkat lanjut!</p>`;
+                } else if (finalScore >= 60) {
+                    msgEl.innerHTML = `<span class="text-amber-400">Cukup Kompeten</span><p class="text-sm text-slate-400 mt-2 font-normal">Pemahaman dasar sudah tercapai, namun tinjau kembali buku panduan modul untuk memperkuat analisis diagnostik Anda.</p>`;
+                } else {
+                    msgEl.innerHTML = `<span class="text-red-400">Belum Kompeten</span><p class="text-sm text-slate-400 mt-2 font-normal">Sangat disarankan untuk membaca kembali landasan teori dan mengulang praktikum CLI (Hands-on) di lingkungan Virtual Machine.</p>`;
+                }
+            }, 300);
+        }
+
+        function resetToMenu() {
+            viewResults.classList.add('hidden');
+            viewMenu.classList.remove('hidden');
+            // Reset Circle
+            document.getElementById('score-circle-fg').style.strokeDashoffset = 283;
+        }
+
+        function retryQuiz() {
+            viewResults.classList.add('hidden');
+            // Reset Circle
+            document.getElementById('score-circle-fg').style.strokeDashoffset = 283;
+            startQuiz(currentGroup);
+        }
+
+        function exitQuiz() {
+            if(confirm("Apakah Anda yakin ingin keluar? Progres kuis ini tidak akan disimpan.")) {
+                viewQuiz.classList.add('hidden');
+                viewMenu.classList.remove('hidden');
+            }
+        }
+
+        // --- 5. BACKGROUND PARTICLES (REUSED FOR VISUAL CONTINUITY) ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x; this.y = y;
+                this.directionX = directionX; this.directionY = directionY;
+                this.size = size; this.color = color;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+                if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+                this.x += this.directionX;
+                this.y += this.directionY;
+                this.draw();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            // Less dense than cover page to not distract reading
+            let numberOfParticles = (canvas.height * canvas.width) / 25000; 
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2) + 1;
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 0.5) - 0.25;
+                let directionY = (Math.random() * 0.5) - 0.25;
+                // Amber/Orange tinted particles for quiz theme
+                let color = 'rgba(245, 158, 11, 0.2)'; 
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        function animateParticles() {
+            requestAnimationFrame(animateParticles);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+        }
+
+        // Init
+        resizeCanvas();
+        animateParticles();
+    </script>
+</body>
+</html>

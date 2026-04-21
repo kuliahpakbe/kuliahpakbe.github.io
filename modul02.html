@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 2: CLI Dasar & Text Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 700: '#0f766e', 900: '#134e4a' },
+                        term: { bg: '#1e1e1e', text: '#d4d4d4', prompt: '#4ade80', user: '#60a5fa' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Minimal embedded CSS for strict chart container control */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        /* Custom scrollbar for terminal */
+        .terminal-scroll::-webkit-scrollbar { width: 6px; }
+        .terminal-scroll::-webkit-scrollbar-track { background: #1e1e1e; }
+        .terminal-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Teal (Brand/Interactive), Slate (Background/Text), Emerald & Blue (Terminal Accents) -->
+    <!-- Application Structure Plan: SPA ini dirancang dengan struktur 'Guided Interactive Dashboard'. Mengingat laporan sumber (Modul 2) sangat teknis dan prosedural, struktur linear buku diubah menjadi modul-modul interaktif: 1) Header & Tujuan (Konteks), 2) Visualisasi Arsitektur (Konsep abstrak dibuat visual), 3) FHS Explorer (Navigasi direktori dibuat interaktif/klikabel), 4) Komparasi Editor (Radar chart untuk Nano vs Vim), dan 5) Simulator Terminal (Memungkinkan pengguna mempraktikkan teori CRUD dan Path secara aman). Struktur ini dipilih agar praktikan dapat mensintesis informasi (belajar sambil mencoba/learning by doing) sesuai semangat Outcome-Based Education (OBE). -->
+    <!-- Visualization & Content Choices: 1. Anatomi Perintah & Arsitektur -> Goal: Inform -> Viz: Doughnut Chart & HTML Diagram -> Justification: Memvisualisasikan lapisan abstrak (Hardware ke User). 2. FHS Explorer -> Goal: Organize -> Viz: Interactive HTML Grid -> Justification: Pengguna dapat mengklik folder untuk melihat isinya (NO SVG, menggunakan Unicode 📁). 3. Nano vs Vim -> Goal: Compare -> Viz: Radar Chart (Chart.js) -> Justification: Sangat efektif membandingkan atribut multidimensi (Learning Curve, Speed, dll). 4. Simulator Terminal -> Goal: Engagement/Change -> Viz: JS-driven HTML Console -> Justification: Evaluasi formatif langsung dari perintah `ls`, `pwd`, `cd`. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight">🐧 Modul 2 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#arsitektur" class="hover:text-brand-600 transition-colors">Arsitektur</a>
+                    <a href="#fhs" class="hover:text-brand-600 transition-colors">FHS Explorer</a>
+                    <a href="#editor" class="hover:text-brand-600 transition-colors">Text Editor</a>
+                    <a href="#simulator" class="hover:text-brand-600 transition-colors">Terminal</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-28 pb-16 bg-brand-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 font-mono text-xs overflow-hidden select-none pointer-events-none" aria-hidden="true">
+            budi@ubuntu:~$ ls -l /etc<br>budi@ubuntu:~$ pwd<br>budi@ubuntu:~$ mkdir -p Proyek/Web<br>budi@ubuntu:~$ touch config.ini<br>budi@ubuntu:~$ rm -rf Logs<br>budi@ubuntu:~$ vim mysql.ini<br>budi@ubuntu:~$ cd ..<br>budi@ubuntu:~$ ls -l /etc<br>budi@ubuntu:~$ pwd<br>budi@ubuntu:~$ mkdir -p Proyek/Web<br>budi@ubuntu:~$ touch config.ini
+        </div>
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 2</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Command Line Interface (CLI) Dasar & Text Editor</h1>
+            <p class="text-lg md:text-xl text-brand-100 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Tinggalkan antarmuka grafis (GUI). Kuasai navigasi sistem operasi, operasi CRUD berkas, dan pengeditan konfigurasi murni melalui cangkang (Shell) Linux.
+            </p>
+            <a href="#simulator" class="inline-block bg-white text-brand-900 font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-50 transition-transform transform hover:-translate-y-1">
+                💻 Coba Terminal Simulator
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- Arsitektur Section -->
+        <section id="arsitektur" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-slate-800">Filosofi CLI & Arsitektur OS</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Memahami lapisan interaksi antara perangkat keras dan pengguna dalam lingkungan Linux.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <!-- Conceptual Hierarchy -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6 border-b pb-2">Hierarki Interaksi</h3>
+                    <div class="space-y-4 font-mono text-sm">
+                        <div class="bg-slate-800 text-white p-4 rounded-lg flex items-center justify-between border-l-4 border-blue-500 hover:scale-105 transition-transform cursor-default">
+                            <span>👩‍💻 Lapis 4: USER / APLIKASI</span>
+                            <span class="text-xs text-slate-400">Anda (budi)</span>
+                        </div>
+                        <div class="text-center text-slate-400">⬇️ Meneruskan Perintah</div>
+                        <div class="bg-slate-700 text-white p-4 rounded-lg flex items-center justify-between border-l-4 border-brand-500 hover:scale-105 transition-transform cursor-default">
+                            <span>🐚 Lapis 3: SHELL (Bash)</span>
+                            <span class="text-xs text-slate-400">Penerjemah CLI</span>
+                        </div>
+                        <div class="text-center text-slate-400">⬇️ System Calls</div>
+                        <div class="bg-slate-600 text-white p-4 rounded-lg flex items-center justify-between border-l-4 border-amber-500 hover:scale-105 transition-transform cursor-default">
+                            <span>⚙️ Lapis 2: KERNEL (Linux)</span>
+                            <span class="text-xs text-slate-400">Inti OS</span>
+                        </div>
+                        <div class="text-center text-slate-400">⬇️ Instruksi Fisik</div>
+                        <div class="bg-slate-500 text-white p-4 rounded-lg flex items-center justify-between border-l-4 border-red-500 hover:scale-105 transition-transform cursor-default">
+                            <span>🖥️ Lapis 1: HARDWARE</span>
+                            <span class="text-xs text-slate-400">CPU/RAM/Disk</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anatomi Command & Chart -->
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">Anatomi Perintah CLI</h3>
+                        <div class="bg-slate-100 p-4 rounded-lg font-mono text-center text-lg mb-4">
+                            <span class="text-blue-600 font-bold">ls</span> 
+                            <span class="text-emerald-600 font-bold">-l</span> 
+                            <span class="text-amber-600 font-bold">/etc</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div class="bg-blue-100 text-blue-800 p-2 rounded"><strong>Perintah</strong><br>(Command)</div>
+                            <div class="bg-emerald-100 text-emerald-800 p-2 rounded"><strong>Opsi</strong><br>(Flags/Options)</div>
+                            <div class="bg-amber-100 text-amber-800 p-2 rounded"><strong>Argumen</strong><br>(Target Objek)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Anatomi Metadata File</h3>
+                        <p class="text-xs text-slate-500 mb-4">Membaca output dari <code>ls -l</code></p>
+                        <div class="chart-container">
+                            <canvas id="metadataChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FHS Explorer Section -->
+        <section id="fhs" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-extrabold text-slate-800">Filesystem Hierarchy Standard (FHS)</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Linux menggunakan satu pohon hierarki (Single Root Tree). Klik pada ikon folder di bawah untuk memahami fungsi setiap direktori standar industri.</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Interactive Grid -->
+                <div class="w-full lg:w-3/5 grid grid-cols-3 sm:grid-cols-4 gap-4" id="fhs-grid">
+                    <!-- Populated by JS -->
+                </div>
+                
+                <!-- Detail Panel -->
+                <div class="w-full lg:w-2/5 bg-brand-50 border border-brand-200 rounded-2xl p-8 flex flex-col justify-center transition-all duration-300" id="fhs-detail">
+                    <div class="text-center text-brand-300">
+                        <div class="text-6xl mb-4">👆</div>
+                        <p class="font-medium">Klik salah satu folder di sebelah kiri untuk melihat deskripsi detailnya.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Editor Comparison Section -->
+        <section id="editor" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-extrabold text-slate-800">Text Editor CLI: Nano vs Vim</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Di dunia server murni, Anda tidak memiliki GUI. Penguasaan editor teks berbasis terminal adalah keharusan mutlak.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <!-- Chart Container -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-center font-bold text-slate-700 mb-4">Perbandingan Karakteristik Editor</h3>
+                    <div class="chart-container">
+                        <canvas id="editorChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Text Explanation & Interactive Modes -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">GNU Nano (Modeless)</h3>
+                        <p class="text-sm text-slate-600 mb-3">Dirancang untuk kesederhanaan. Beroperasi dengan gaya WYSIWYG (What You See Is What You Get). Kontrol menggunakan pintasan keyboard kombinasi <code>Ctrl</code>.</p>
+                        <div class="flex gap-2 text-xs font-mono">
+                            <span class="bg-slate-100 px-2 py-1 rounded border border-slate-200">Ctrl+O (Simpan)</span>
+                            <span class="bg-slate-100 px-2 py-1 rounded border border-slate-200">Ctrl+X (Keluar)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-amber-500">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Vim (Modal Editor)</h3>
+                        <p class="text-sm text-slate-600 mb-4">Diciptakan untuk efisiensi radikal. Tombol di keyboard memiliki fungsi berbeda tergantung pada <strong>Mode</strong> yang sedang aktif.</p>
+                        
+                        <!-- Interactive Vim Modes -->
+                        <div class="bg-slate-800 p-4 rounded-xl">
+                            <div class="flex justify-between mb-4">
+                                <button onclick="setVimMode('normal')" id="btn-normal" class="vim-btn bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded">Normal Mode</button>
+                                <button onclick="setVimMode('insert')" id="btn-insert" class="vim-btn bg-slate-600 text-slate-300 text-xs font-bold px-3 py-1.5 rounded">Insert Mode</button>
+                                <button onclick="setVimMode('command')" id="btn-command" class="vim-btn bg-slate-600 text-slate-300 text-xs font-bold px-3 py-1.5 rounded">Command Mode</button>
+                            </div>
+                            <div id="vim-desc" class="text-sm text-slate-300 min-h-[80px]">
+                                <strong>Mode Default.</strong> Digunakan untuk navigasi dan memanipulasi teks. <br>
+                                <span class="text-amber-400 font-mono mt-2 block">Ketik 'i' untuk Insert. Ketik 'dd' hapus baris.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Terminal Simulator Section -->
+        <section id="simulator" class="scroll-mt-24 mb-20">
+            <div class="bg-term-bg rounded-2xl shadow-2xl overflow-hidden border border-slate-700">
+                <!-- Terminal Header -->
+                <div class="bg-slate-800 px-4 py-2 flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div class="mx-auto text-xs text-slate-400 font-mono">budi@ubuntu-vm-budi:~</div>
+                </div>
+                
+                <!-- Terminal Body -->
+                <div class="p-4 md:p-6 font-mono text-sm md:text-base text-term-text h-[400px] flex flex-col relative">
+                    <!-- Output Area -->
+                    <div id="term-output" class="flex-grow overflow-y-auto terminal-scroll pb-2 space-y-1 break-all">
+                        <div class="text-slate-400">Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-101-generic x86_64)</div>
+                        <div class="text-slate-400 mb-4">* Ketik <span class="text-yellow-400">help</span> untuk daftar perintah yang disimulasikan.</div>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="flex mt-2 items-center">
+                        <span class="text-term-prompt font-bold mr-2 whitespace-nowrap">budi@ubuntu:<span id="term-path" class="text-term-user">~</span>$</span>
+                        <input type="text" id="term-input" class="flex-grow bg-transparent border-none outline-none text-term-text font-mono focus:ring-0" autocomplete="off" spellcheck="false" autofocus>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-center text-sm text-slate-500">
+                * Ini adalah simulator statis yang dirancang untuk melatih konsep Modul 2. Perintah didukung: <code class="bg-slate-200 px-1 rounded">pwd</code>, <code class="bg-slate-200 px-1 rounded">ls</code>, <code class="bg-slate-200 px-1 rounded">ls -l</code>, <code class="bg-slate-200 px-1 rounded">cd</code>, <code class="bg-slate-200 px-1 rounded">touch</code>, <code class="bg-slate-200 px-1 rounded">clear</code>, <code class="bg-slate-200 px-1 rounded">help</code>.
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-1">Disusun untuk Praktikum Sistem Operasi Berbasis OBE.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // ==========================================
+        // 1. DATA STORAGE & STATE MANAGEMENT
+        // ==========================================
+        
+        // State for FHS Explorer
+        const fhsData = [
+            { path: "/", name: "Root", desc: "Akar pohon dari hierarki Filesystem Linux. Tidak ada C:\\ atau D:\\, semuanya bermuara di sini.", icon: "🌲", type: "root" },
+            { path: "/bin", name: "Binaries", desc: "Berisi program-program executable penting (binaries) yang bisa diakses semua user, seperti ls, cp, bash.", icon: "⚙️", type: "system" },
+            { path: "/boot", name: "Boot", desc: "Menyimpan file statis untuk proses boot loader, termasuk Kernel Linux (vmlinuz) dan konfigurasi GRUB.", icon: "🚀", type: "system" },
+            { path: "/dev", name: "Devices", desc: "Representasi perangkat keras. Hardisk, mouse, atau terminal direpresentasikan sebagai file di sini (Everything is a file).", icon: "🖲️", type: "system" },
+            { path: "/etc", name: "Etcetera", desc: "Pusat konfigurasi sistem global. Berisi file konfigurasi berbasis teks murni (plain text). Tidak ada file executable di sini.", icon: "📝", type: "config" },
+            { path: "/home", name: "Home", desc: "Direktori pribadi untuk setiap pengguna reguler. User bebas melakukan CRUD file di dalam folder pribadinya sendiri.", icon: "🏠", type: "user" },
+            { path: "/root", name: "Root Home", desc: "Home directory khusus dan eksklusif untuk superuser (root). User biasa tidak diizinkan masuk ke folder ini.", icon: "👑", type: "system" },
+            { path: "/tmp", name: "Temporary", desc: "Tempat menyimpan file sementara. File di folder ini otomatis dihapus oleh sistem saat komputer dimatikan/reboot.", icon: "🗑️", type: "system" },
+            { path: "/usr", name: "User Programs", desc: "Secondary Hierarchy. Tempat instalasi sebagian besar perangkat lunak tambahan dan shared libraries untuk sistem.", icon: "📦", type: "system" },
+            { path: "/var", name: "Variable Data", desc: "Menyimpan data yang ukurannya terus berubah secara dinamis, seperti file log sistem (/var/log) atau database.", icon: "📈", type: "system" }
+        ];
+
+        // State for Terminal Simulator
+        const termState = {
+            currentPath: "~",
+            realPath: "/home/budi",
+            filesystem: {
+                "/home/budi": ["Documents", "Downloads", "Pictures", "Proyek", "status.txt"],
+                "/home/budi/Proyek": ["Web_Server"],
+                "/home/budi/Proyek/Web_Server": ["Konfigurasi", "Logs"],
+                "/home/budi/Proyek/Web_Server/Konfigurasi": ["apache.conf", "mysql.ini"],
+                "/home/budi/Proyek/Web_Server/Logs": [],
+                "/etc": ["apt", "apache2", "ssh", "passwd", "shadow", "fstab"]
+            }
+        };
+
+        // ==========================================
+        // 2. FHS EXPLORER INITIALIZATION
+        // ==========================================
+        function initFhsExplorer() {
+            const grid = document.getElementById('fhs-grid');
+            
+            fhsData.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-brand-400 flex flex-col items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-brand-500';
+                btn.innerHTML = `<span class="text-3xl mb-2">${item.icon}</span><span class="font-mono text-sm font-bold text-slate-700">${item.path}</span>`;
+                
+                btn.addEventListener('click', () => {
+                    const detail = document.getElementById('fhs-detail');
+                    detail.innerHTML = `
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="text-5xl">${item.icon}</span>
+                            <div>
+                                <h3 class="text-2xl font-bold text-brand-900 font-mono">${item.path}</h3>
+                                <span class="text-sm font-semibold text-brand-600 uppercase tracking-wider">${item.name}</span>
+                            </div>
+                        </div>
+                        <p class="text-slate-700 leading-relaxed text-lg">${item.desc}</p>
+                    `;
+                });
+                
+                grid.appendChild(btn);
+            });
+        }
+
+        // ==========================================
+        // 3. VIM INTERACTIVE COMPONENT
+        // ==========================================
+        function setVimMode(mode) {
+            const btns = document.querySelectorAll('.vim-btn');
+            btns.forEach(b => { b.classList.remove('bg-amber-500', 'text-white'); b.classList.add('bg-slate-600', 'text-slate-300'); });
+            
+            const btn = document.getElementById(`btn-${mode}`);
+            btn.classList.remove('bg-slate-600', 'text-slate-300');
+            btn.classList.add('bg-amber-500', 'text-white');
+
+            const desc = document.getElementById('vim-desc');
+            if(mode === 'normal') {
+                desc.innerHTML = `<strong>Mode Default.</strong> Digunakan untuk navigasi dan memanipulasi teks.<br><span class="text-amber-400 font-mono mt-2 block">Ketik 'i' untuk Insert. Ketik 'dd' hapus baris.</span>`;
+            } else if (mode === 'insert') {
+                desc.innerHTML = `<strong>Insert Mode.</strong> Mengetik teks bebas.<br><span class="text-amber-400 font-mono mt-2 block">-- INSERT --<br>Tekan 'Esc' untuk kembali ke Normal Mode.</span>`;
+            } else if (mode === 'command') {
+                desc.innerHTML = `<strong>Command-Line Mode.</strong> Menyimpan atau keluar.<br><span class="text-amber-400 font-mono mt-2 block">:wq (simpan & keluar)<br>:q! (keluar paksa tanpa simpan)</span>`;
+            }
+        }
+
+        // ==========================================
+        // 4. CHART.JS INITIALIZATION
+        // ==========================================
+        function initCharts() {
+            // Chart 1: Metadata Anatomy (Doughnut)
+            const ctxMeta = document.getElementById('metadataChart').getContext('2d');
+            new Chart(ctxMeta, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Tipe Berkas (1)', 'Permissions (9)', 'Links (1)', 'Owner (User)', 'Group', 'Ukuran (Bytes)', 'Timestamp', 'Nama File'],
+                    datasets: [{
+                        data: [5, 25, 5, 10, 10, 15, 15, 15],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#64748b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } },
+                        tooltip: { callbacks: { label: function(c) { return ' Komponen: ' + c.label; } } }
+                    }
+                }
+            });
+
+            // Chart 2: Nano vs Vim (Radar)
+            const ctxEditor = document.getElementById('editorChart').getContext('2d');
+            new Chart(ctxEditor, {
+                type: 'radar',
+                data: {
+                    labels: ['Kemudahan Pemula', 'Kecepatan Navigasi', 'Efisiensi Tanpa Mouse', 'Kelengkapan Fitur (Dev)', 'Keringanan Sistem'],
+                    datasets: [
+                        {
+                            label: 'Nano',
+                            data: [90, 40, 30, 40, 95],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        },
+                        {
+                            label: 'Vim',
+                            data: [10, 95, 100, 90, 90],
+                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                            borderColor: 'rgba(245, 158, 11, 1)',
+                            pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: { 
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            pointLabels: { font: { size: 10 } },
+                            ticks: { display: false, min: 0, max: 100 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 5. TERMINAL SIMULATOR LOGIC
+        // ==========================================
+        const termInput = document.getElementById('term-input');
+        const termOutput = document.getElementById('term-output');
+        const termPathEl = document.getElementById('term-path');
+
+        function printTerm(text, isHTML = false) {
+            const div = document.createElement('div');
+            if(isHTML) div.innerHTML = text;
+            else div.textContent = text;
+            termOutput.appendChild(div);
+            termOutput.scrollTop = termOutput.scrollHeight;
+        }
+
+        function getDirContents(path) {
+            if(termState.filesystem[path]) return termState.filesystem[path];
+            return [];
+        }
+
+        termInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = this.value.trim();
+                this.value = '';
+                
+                // Print prompt + command
+                printTerm(`<span class="text-term-prompt font-bold">budi@ubuntu:<span class="text-term-user">${termState.currentPath}</span>$</span> ${cmd}`, true);
+                
+                if (cmd === '') return;
+
+                const args = cmd.split(' ').filter(v => v !== '');
+                const mainCmd = args[0];
+
+                switch(mainCmd) {
+                    case 'pwd':
+                        printTerm(termState.realPath);
+                        break;
+                    case 'ls':
+                        if (args.includes('-l')) {
+                            const items = getDirContents(termState.realPath);
+                            if(items.length === 0) break;
+                            printTerm('total 12');
+                            items.forEach(item => {
+                                const isDir = !item.includes('.');
+                                const perm = isDir ? 'drwxr-xr-x' : '-rw-r--r--';
+                                const color = isDir ? 'text-blue-400 font-bold' : 'text-term-text';
+                                printTerm(`${perm} 2 budi budi 4096 Feb 15 08:30 <span class="${color}">${item}</span>`, true);
+                            });
+                        } else {
+                            const items = getDirContents(termState.realPath);
+                            const html = items.map(i => !i.includes('.') ? `<span class="text-blue-400 font-bold mr-4">${i}</span>` : `<span class="mr-4">${i}</span>`).join('');
+                            if(html) printTerm(html, true);
+                        }
+                        break;
+                    case 'cd':
+                        const target = args[1] || '~';
+                        if (target === '~' || target === '') {
+                            termState.currentPath = '~';
+                            termState.realPath = '/home/budi';
+                        } else if (target === '..') {
+                            if (termState.realPath !== '/') {
+                                const parts = termState.realPath.split('/');
+                                parts.pop();
+                                termState.realPath = parts.join('/') || '/';
+                                termState.currentPath = termState.realPath === '/home/budi' ? '~' : termState.realPath;
+                            }
+                        } else if (target === '/etc') {
+                            termState.currentPath = '/etc';
+                            termState.realPath = '/etc';
+                        } else if (target === '/') {
+                            termState.currentPath = '/';
+                            termState.realPath = '/';
+                        } else if (termState.filesystem[termState.realPath + '/' + target] || termState.filesystem[target]) {
+                             // Handle relative child
+                             if(termState.filesystem[termState.realPath + '/' + target]) {
+                                 termState.realPath = termState.realPath + '/' + target;
+                             } else {
+                                 termState.realPath = target;
+                             }
+                             termState.currentPath = termState.realPath.replace('/home/budi', '~');
+                        } else {
+                            printTerm(`bash: cd: ${target}: No such file or directory`);
+                        }
+                        termPathEl.textContent = termState.currentPath;
+                        break;
+                    case 'touch':
+                        if(!args[1]) {
+                            printTerm('touch: missing file operand');
+                        } else {
+                            if(!termState.filesystem[termState.realPath]) termState.filesystem[termState.realPath] = [];
+                            if(!termState.filesystem[termState.realPath].includes(args[1])) {
+                                termState.filesystem[termState.realPath].push(args[1]);
+                            }
+                        }
+                        break;
+                    case 'clear':
+                        termOutput.innerHTML = '';
+                        break;
+                    case 'whoami':
+                        printTerm('budi');
+                        break;
+                    case 'help':
+                        printTerm('SIMULATOR CLI COMMANDS:', true);
+                        printTerm(' pwd     : Print working directory');
+                        printTerm(' ls      : List directory contents (try ls -l)');
+                        printTerm(' cd      : Change directory (try cd /etc, cd ~, cd ..)');
+                        printTerm(' touch   : Create empty file (e.g. touch file.txt)');
+                        printTerm(' clear   : Clear terminal screen');
+                        printTerm(' whoami  : Print current user');
+                        break;
+                    default:
+                        printTerm(`${mainCmd}: command not found`);
+                }
+            }
+        });
+
+        // Focus terminal input when clicking anywhere on terminal
+        document.getElementById('simulator').addEventListener('click', () => {
+            termInput.focus();
+        });
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initFhsExplorer();
+            initCharts();
+        });
+    </script>
+</body>
+</html>

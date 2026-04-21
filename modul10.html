@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 10: Dasar-Dasar Shell Scripting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 700: '#047857', 900: '#064e3b' }, // Emerald/Bash Theme
+                        ide: { bg: '#1e1e1e', top: '#2d2d2d', text: '#d4d4d4', highlight: '#064e3b', line: '#858585' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .term-scroll::-webkit-scrollbar { width: 6px; }
+        .term-scroll::-webkit-scrollbar-track { background: #1e1e1e; }
+        .term-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-500 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* IDE Code Lines */
+        .code-line {
+            @apply flex font-mono text-sm leading-relaxed px-4 py-1 border-l-4 border-transparent transition-colors duration-200;
+        }
+        .code-line.active {
+            @apply bg-ide-highlight border-brand-500;
+        }
+        .line-num {
+            @apply text-ide-line w-8 select-none text-right mr-4;
+        }
+        
+        /* Syntax highlighting simple classes */
+        .sh-cmd { color: #569cd6; } /* blue */
+        .sh-str { color: #ce9178; } /* orange */
+        .sh-var { color: #9cdcfe; } /* light blue */
+        .sh-kwd { color: #c586c0; } /* purple */
+        .sh-cmt { color: #6a9955; } /* green */
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Emerald/Green (Hacker/Bash Theme), Slate (Background), IDE Dark Colors -->
+    <!-- Application Structure Plan: SPA dirancang dengan filosofi 'Otomatisasi & Pemrograman Administratif'. Struktur: 1) Header, 2) Teori Sintaks Dasar (Shebang, Variabel, Kontrol Alur), 3) Simulator Visualizer Skrip (Alat utama di mana pengguna mengeksekusi skrip Bash selangkah demi selangkah dan melihat perubahan variabel di memori, mirip debugger di VSCode), 4) Analisis Otomatisasi (Grafik efisiensi waktu manual vs skrip dengan Chart.js). Konsep ini mengubah penulisan skrip yang abstrak menjadi alur visual yang konkrit. -->
+    <!-- Visualization & Content Choices: 1. Komponen Skrip -> Goal: Inform -> Viz: Grid Cards dengan contoh kode -> Justification: Memecah sintaks kompleks menjadi blok-blok kecil (Variabel, If, For). 2. Visualizer/Debugger Bash -> Goal: Compute/Engagement -> Viz: Custom HTML/CSS IDE Panel dengan JS state machine -> Justification: Menyorot baris yang sedang dieksekusi membantu mahasiswa memahami bagaimana 'loop' berputar kembali ke atas, dan bagaimana 'if' melompat, tanpa memerlukan SVG/Mermaid. 3. Keuntungan Otomatisasi -> Goal: Persuade/Compare -> Viz: Line Chart (Chart.js) -> Justification: Menunjukkan akumulasi waktu yang dihemat oleh administrator jika mereka menulis skrip dibanding mengetik manual setiap hari. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-terminal mr-2"></i> Modul 10 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#konsep" class="hover:text-brand-600 transition-colors">Sintaks Bash</a>
+                    <a href="#visualizer" class="hover:text-brand-600 transition-colors">Debugger Skrip</a>
+                    <a href="#analisis" class="hover:text-brand-600 transition-colors">Efisiensi Otomatisasi</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <!-- Abstract Matrix/Code Background -->
+        <div class="absolute inset-0 flex p-8 pointer-events-none justify-center opacity-10 font-mono text-brand-500 text-sm overflow-hidden" aria-hidden="true">
+            <div class="space-y-1 w-full max-w-4xl opacity-50">
+                <div>#!/bin/bash</div>
+                <div>for i in {1..5}; do</div>
+                <div>&nbsp;&nbsp;echo "Memproses data $i..."</div>
+                <div>&nbsp;&nbsp;if [ $i -eq 3 ]; then</div>
+                <div>&nbsp;&nbsp;&nbsp;&nbsp;echo "Data kritis ditemukan!"</div>
+                <div>&nbsp;&nbsp;fi</div>
+                <div>done</div>
+                <div>tar -czvf backup.tar.gz /var/www</div>
+                <div>echo "Otomatisasi selesai."</div>
+            </div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-50 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 10</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Dasar-Dasar Shell Scripting</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Tingkatkan level Anda dari Operator menjadi Administrator. Rangkai puluhan perintah Linux ke dalam satu berkas berkekuatan tinggi untuk mengotomatisasi tugas berulang yang membosankan.
+            </p>
+            <a href="#visualizer" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-play-circle mr-2"></i> Buka Debugger Skrip
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Konsep Dasar Sintaks -->
+        <section id="konsep" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Anatomi Skrip Bash</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sebuah *Shell Script* pada dasarnya adalah kumpulan perintah terminal biasa yang diketik dalam satu *file* teks, namun dilengkapi dengan kekuatan bahasa pemrograman seperti Variabel dan Logika Percabangan.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-slate-800 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-hashtag text-slate-500 mr-2"></i> Shebang</h3>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Baris pertama yang wajib ada. Memberitahu OS program apa (interpreter) yang harus dipakai untuk membaca file ini.</p>
+                    <div class="bg-slate-800 p-3 rounded font-mono text-xs text-brand-400">
+                        #!/bin/bash
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-box text-blue-500 mr-2"></i> Variabel</h3>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Menyimpan data tanpa tipe yang kaku. Perhatikan <strong>tidak boleh ada spasi</strong> di sekitar tanda sama dengan (=).</p>
+                    <div class="bg-slate-800 p-3 rounded font-mono text-xs text-slate-300">
+                        NAMA="Budi"<br>
+                        echo "Halo $NAMA"
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-code-branch text-amber-500 mr-2"></i> If / Else</h3>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Logika kondisional. Menggunakan tanda kurung siku `[ ]` untuk pengujian (test). Diakhiri dengan `fi`.</p>
+                    <div class="bg-slate-800 p-3 rounded font-mono text-xs text-slate-300 leading-relaxed">
+                        <span class="text-amber-400">if</span> [ $UMUR <span class="text-brand-400">-gt</span> 18 ]; <span class="text-amber-400">then</span><br>
+                        &nbsp;&nbsp;echo "Dewasa"<br>
+                        <span class="text-amber-400">fi</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-brand-500 flex flex-col">
+                    <h3 class="!mt-0 !mb-3 !border-none text-lg text-slate-800"><i class="fas fa-sync text-brand-500 mr-2"></i> Looping</h3>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Melakukan perulangan perintah (For / While). Dibuka dengan `do` dan ditutup dengan `done`.</p>
+                    <div class="bg-slate-800 p-3 rounded font-mono text-xs text-slate-300 leading-relaxed">
+                        <span class="text-brand-400">for</span> i <span class="text-brand-400">in</span> 1 2 3<br>
+                        <span class="text-brand-400">do</span><br>
+                        &nbsp;&nbsp;echo "Data $i"<br>
+                        <span class="text-brand-400">done</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="callout bg-indigo-50 border-indigo-500 text-indigo-900 mb-8">
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="fas fa-key text-2xl text-indigo-500"></i>
+                    <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-indigo-900 text-lg">Izin Eksekusi Skrip (Executable)</h3>
+                </div>
+                <p class="text-sm mt-2 leading-relaxed">
+                    Setelah Anda menulis file skrip (contoh: <code>backup.sh</code>), file tersebut tidak akan bisa langsung dijalankan dengan perintah <code>./backup.sh</code>. Sistem Linux secara default melindungi file dari eksekusi. Anda <strong>wajib</strong> memberinya izin eksekusi menggunakan perintah <code class="bg-white px-2 py-1 text-indigo-700 font-bold border-indigo-200">chmod +x backup.sh</code> terlebih dahulu.
+                </p>
+            </div>
+        </section>
+
+        <!-- Debugger / Visualizer Interaktif -->
+        <section id="visualizer" class="scroll-mt-24 mb-16">
+            <div class="text-center mb-12">
+                <h2>Visualizer Eksekusi Skrip</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Salah satu kesulitan terbesar pemula adalah membayangkan bagaimana komputer membaca kode baris-demi-baris. Klik tombol <strong>Step Forward</strong> untuk mengeksekusi skrip <em>backup</em> otomatis di bawah ini secara perlahan, dan amati perubahan di memori dan layar terminal.</p>
+            </div>
+
+            <div class="bg-ide-bg rounded-2xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col">
+                
+                <!-- Toolbar -->
+                <div class="bg-ide-top px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-file-code text-brand-500"></i>
+                        <span class="text-sm font-mono text-slate-300 font-bold">backup_otomatis.sh</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="resetScript()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">
+                            <i class="fas fa-undo mr-1"></i> Reset
+                        </button>
+                        <button id="btn-step" onclick="stepScript()" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-1.5 rounded text-xs font-bold transition-colors flex items-center shadow-md">
+                            Step Forward <i class="fas fa-step-forward ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Work Area -->
+                <div class="flex flex-col lg:flex-row min-h-[400px]">
+                    
+                    <!-- Code Editor View -->
+                    <div class="w-full lg:w-3/5 border-b lg:border-b-0 lg:border-r border-slate-700 pt-2 pb-4 bg-ide-bg text-ide-text">
+                        <div id="line-1" class="code-line"><span class="line-num">1</span><span class="sh-cmt">#!/bin/bash</span></div>
+                        <div id="line-2" class="code-line"><span class="line-num">2</span></div>
+                        <div id="line-3" class="code-line"><span class="line-num">3</span><span class="sh-var">DIR</span>=<span class="sh-str">"/var/www"</span></div>
+                        <div id="line-4" class="code-line"><span class="line-num">4</span><span class="sh-cmd">echo</span> <span class="sh-str">"Memeriksa status direktori $DIR..."</span></div>
+                        <div id="line-5" class="code-line"><span class="line-num">5</span></div>
+                        <div id="line-6" class="code-line"><span class="line-num">6</span><span class="sh-kwd">if</span> [ <span class="sh-str">-d</span> <span class="sh-str">"$DIR"</span> ]; <span class="sh-kwd">then</span></div>
+                        <div id="line-7" class="code-line"><span class="line-num">7</span>&nbsp;&nbsp;<span class="sh-cmd">echo</span> <span class="sh-str">"[OK] Direktori ditemukan!"</span></div>
+                        <div id="line-8" class="code-line"><span class="line-num">8</span>&nbsp;&nbsp;<span class="sh-cmd">echo</span> <span class="sh-str">"Memulai proses arsip dalam 3 tahap:"</span></div>
+                        <div id="line-9" class="code-line"><span class="line-num">9</span>&nbsp;&nbsp;</div>
+                        <div id="line-10" class="code-line"><span class="line-num">10</span>&nbsp;&nbsp;<span class="sh-kwd">for</span> i <span class="sh-kwd">in</span> 1 2 3</div>
+                        <div id="line-11" class="code-line"><span class="line-num">11</span>&nbsp;&nbsp;<span class="sh-kwd">do</span></div>
+                        <div id="line-12" class="code-line"><span class="line-num">12</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="sh-cmd">echo</span> <span class="sh-str">"  -> Memproses blok data ke-$i"</span></div>
+                        <div id="line-13" class="code-line"><span class="line-num">13</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="sh-cmd">sleep</span> 1</div>
+                        <div id="line-14" class="code-line"><span class="line-num">14</span>&nbsp;&nbsp;<span class="sh-kwd">done</span></div>
+                        <div id="line-15" class="code-line"><span class="line-num">15</span>&nbsp;&nbsp;</div>
+                        <div id="line-16" class="code-line"><span class="line-num">16</span>&nbsp;&nbsp;<span class="sh-var">STATUS</span>=<span class="sh-str">"BERHASIL"</span></div>
+                        <div id="line-17" class="code-line"><span class="line-num">17</span><span class="sh-kwd">else</span></div>
+                        <div id="line-18" class="code-line"><span class="line-num">18</span>&nbsp;&nbsp;<span class="sh-cmd">echo</span> <span class="sh-str">"[ERROR] Direktori tidak ada. Abort."</span></div>
+                        <div id="line-19" class="code-line"><span class="line-num">19</span>&nbsp;&nbsp;<span class="sh-var">STATUS</span>=<span class="sh-str">"GAGAL"</span></div>
+                        <div id="line-20" class="code-line"><span class="line-num">20</span><span class="sh-kwd">fi</span></div>
+                        <div id="line-21" class="code-line"><span class="line-num">21</span></div>
+                        <div id="line-22" class="code-line"><span class="line-num">22</span><span class="sh-cmd">echo</span> <span class="sh-str">"=== Skrip Selesai dengan status: $STATUS ==="</span></div>
+                    </div>
+
+                    <!-- Side Panels (Memory & Output) -->
+                    <div class="w-full lg:w-2/5 flex flex-col">
+                        
+                        <!-- Memory RAM View -->
+                        <div class="h-1/3 border-b border-slate-700 bg-[#252526] p-4 flex flex-col">
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"><i class="fas fa-microchip mr-2"></i> Memory Variables</div>
+                            <div class="bg-ide-bg flex-grow rounded border border-slate-700 p-3 font-mono text-sm text-brand-400 overflow-y-auto" id="var-memory">
+                                <!-- Vars injected by JS -->
+                                <div class="text-slate-600 italic">Memori kosong...</div>
+                            </div>
+                        </div>
+
+                        <!-- Terminal Output View -->
+                        <div class="h-2/3 bg-[#1e1e1e] p-4 flex flex-col">
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"><i class="fas fa-terminal mr-2"></i> Terminal Output</div>
+                            <div class="bg-black flex-grow rounded border border-slate-700 p-3 font-mono text-sm text-slate-300 overflow-y-auto term-scroll" id="term-out">
+                                <div class="text-slate-500 mb-2">budi@server:~$ ./backup_otomatis.sh</div>
+                                <!-- Output injected by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analisis ROI & Cron -->
+        <section id="analisis" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Analisis ROI Otomatisasi & Cron Jobs</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Menulis skrip memang memakan waktu di awal, namun grafik di bawah ini membuktikan mengapa industri sangat bergantung pada <em>DevOps</em> dan otomatisasi untuk efisiensi jangka panjang.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                
+                <!-- Explanation -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="!mt-0 !mb-3 !pb-0 !border-none text-xl"><i class="fas fa-clock text-brand-500 mr-2"></i> Penjadwalan dengan Cron</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            Skrip sehebat apapun tidak berguna jika Anda masih harus bangun jam 3 pagi untuk menjalankannya. Linux memiliki <em>daemon</em> (servis latar belakang) bernama <strong>cron</strong> yang bertugas mengeksekusi skrip secara otomatis berdasarkan waktu.
+                        </p>
+                        <div class="bg-slate-800 p-4 rounded-xl text-slate-300 font-mono text-sm">
+                            <div class="text-xs text-slate-500 mb-2"># Format: Menit Jam Tanggal Bulan Hari Perintah</div>
+                            <span class="text-brand-400">00 03 * * *</span> /opt/backup.sh
+                            <div class="text-xs text-slate-400 mt-2">-> "Jalankan backup.sh setiap jam 03:00 pagi setiap hari."</div>
+                        </div>
+                    </div>
+
+                    <div class="callout bg-red-50 border-red-500 text-red-900 !mb-0 p-5">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-2xl">⚠️</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-red-900 text-lg">Bahaya Human Error</h3>
+                        </div>
+                        <p class="text-sm mt-2 leading-relaxed">
+                            Mengerjakan tugas administratif server (seperti membuat 100 *user* baru) secara manual rentan terhadap salah ketik (<em>typo</em>). Otomatisasi via skrip memastikan bahwa proses berjalan konsisten 100% setiap saat, dengan standar keamanan yang telah diaudit di dalam skrip.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="text-center font-bold text-slate-800 mb-2 !mt-0">Akumulasi Waktu Tersita: Manual vs Skrip (Per Bulan)</h4>
+                    <p class="text-center text-xs text-slate-500 mb-6">Asumsi: Tugas berulang memakan waktu 15 menit manual vs otomatisasi yang hanya butuh 2 jam pembuatan skrip di Hari ke-1.</p>
+                    <div class="chart-container">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <!-- Scripting Logic -->
+    <script>
+        // ==========================================
+        // 1. VISUALIZER / DEBUGGER STATE MACHINE
+        // ==========================================
+        
+        // Define the execution steps of the script explicitly
+        const executionPlan = [
+            { line: 3, vars: { DIR: '"/var/www"' }, out: null },
+            { line: 4, vars: null, out: "Memeriksa status direktori /var/www..." },
+            { line: 6, vars: null, out: null }, // if evaluation
+            { line: 7, vars: null, out: "[OK] Direktori ditemukan!" },
+            { line: 8, vars: null, out: "Memulai proses arsip dalam 3 tahap:" },
+            
+            // Loop 1
+            { line: 10, vars: { i: '1' }, out: null },
+            { line: 12, vars: null, out: "  -> Memproses blok data ke-1" },
+            { line: 13, vars: null, out: null }, // sleep simulation
+            { line: 14, vars: null, out: null }, // done
+            
+            // Loop 2
+            { line: 10, vars: { i: '2' }, out: null },
+            { line: 12, vars: null, out: "  -> Memproses blok data ke-2" },
+            { line: 13, vars: null, out: null },
+            { line: 14, vars: null, out: null },
+            
+            // Loop 3
+            { line: 10, vars: { i: '3' }, out: null },
+            { line: 12, vars: null, out: "  -> Memproses blok data ke-3" },
+            { line: 13, vars: null, out: null },
+            { line: 14, vars: null, out: null },
+            
+            // After loop
+            { line: 16, vars: { STATUS: '"BERHASIL"' }, out: null },
+            { line: 20, vars: null, out: null }, // fi exit
+            { line: 22, vars: null, out: "=== Skrip Selesai dengan status: BERHASIL ===" }
+        ];
+
+        let currentStep = -1;
+        let activeVars = {};
+        let activeLineElement = null;
+
+        function renderMemory() {
+            const memContainer = document.getElementById('var-memory');
+            if (Object.keys(activeVars).length === 0) {
+                memContainer.innerHTML = '<div class="text-slate-600 italic">Memori kosong...</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const [key, value] of Object.entries(activeVars)) {
+                html += `<div><span class="text-blue-300">${key}</span> = <span class="text-orange-300">${value}</span></div>`;
+            }
+            memContainer.innerHTML = html;
+        }
+
+        function appendOutput(text) {
+            if (!text) return;
+            const termOut = document.getElementById('term-out');
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.className = 'animate-[fadeIn_0.3s_ease-out]';
+            termOut.appendChild(div);
+            termOut.scrollTop = termOut.scrollHeight;
+        }
+
+        function highlightLine(lineNum) {
+            // Remove previous highlight
+            if (activeLineElement) {
+                activeLineElement.classList.remove('active');
+            }
+            // Add new
+            const el = document.getElementById(`line-${lineNum}`);
+            if (el) {
+                el.classList.add('active');
+                activeLineElement = el;
+                // Auto scroll parent if needed (simple approximation)
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function stepScript() {
+            currentStep++;
+            const btn = document.getElementById('btn-step');
+
+            if (currentStep >= executionPlan.length) {
+                btn.innerHTML = 'Eksekusi Selesai <i class="fas fa-check ml-2"></i>';
+                btn.classList.replace('bg-brand-600', 'bg-slate-500');
+                btn.classList.replace('hover:bg-brand-500', 'hover:bg-slate-600');
+                btn.disabled = true;
+                
+                if (activeLineElement) activeLineElement.classList.remove('active');
+                appendOutput("budi@server:~$ ");
+                return;
+            }
+
+            const step = executionPlan[currentStep];
+
+            // Highlight code
+            highlightLine(step.line);
+
+            // Update variables
+            if (step.vars) {
+                activeVars = { ...activeVars, ...step.vars };
+                renderMemory();
+            }
+
+            // Update Output
+            if (step.out) {
+                appendOutput(step.out);
+            }
+        }
+
+        function resetScript() {
+            currentStep = -1;
+            activeVars = {};
+            if (activeLineElement) activeLineElement.classList.remove('active');
+            activeLineElement = null;
+            
+            renderMemory();
+            
+            const termOut = document.getElementById('term-out');
+            termOut.innerHTML = '<div class="text-slate-500 mb-2">budi@server:~$ ./backup_otomatis.sh</div>';
+            
+            const btn = document.getElementById('btn-step');
+            btn.innerHTML = 'Step Forward <i class="fas fa-step-forward ml-2"></i>';
+            btn.classList.replace('bg-slate-500', 'bg-brand-600');
+            btn.classList.replace('hover:bg-slate-600', 'hover:bg-brand-500');
+            btn.disabled = false;
+        }
+
+
+        // ==========================================
+        // 2. CHART.JS: ROI ANALYSIS
+        // ==========================================
+        function initChart() {
+            const ctx = document.getElementById('efficiencyChart').getContext('2d');
+            
+            // Manual: 15 min every day
+            const manualData = [];
+            let manAccum = 0;
+            
+            // Scripted: 120 min on day 1, 0 min after
+            const scriptedData = [];
+            let scriptAccum = 120;
+
+            const labels = [];
+
+            for (let i = 1; i <= 30; i+=2) {
+                labels.push(`Hari ${i}`);
+                manAccum += (15 * (i===1 ? 1 : 2)); // Add 15 mins for each day passed
+                manualData.push(manAccum);
+                scriptedData.push(scriptAccum);
+            }
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Pekerjaan Manual (Menit)',
+                            data: manualData,
+                            borderColor: '#ef4444', // Red
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Otomatisasi Skrip (Menit)',
+                            data: scriptedData,
+                            borderColor: '#10b981', // Emerald
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Total Waktu Terbuang (Menit)', font: {weight: 'bold'} }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+                }
+            });
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+        });
+    </script>
+
+    <!-- Custom Fade Animation -->
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</body>
+</html>

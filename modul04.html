@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 4: Eksplorasi Interaktif & Wargame</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#fdf4ff', 100: '#fae8ff', 500: '#d946ef', 700: '#a21caf', 900: '#701a75' },
+                        term: { bg: '#0f172a', text: '#38bdf8', prompt: '#a3e635', warn: '#f43f5e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 320px; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .term-scroll::-webkit-scrollbar { width: 6px; }
+        .term-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .term-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-brand-900 mt-16 mb-8 py-4 px-6 bg-brand-50 border-l-8 border-brand-600 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-100 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .content-section code {
+            @apply bg-slate-100 text-brand-700 px-2 py-1 rounded-md font-mono text-sm border border-slate-200 mx-1 font-semibold;
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+        
+        .packet-animation {
+            animation: movePacket 2s infinite linear;
+        }
+        @keyframes movePacket {
+            0% { transform: translateX(0); opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Fuchsia/Purple (Brand/Hacker theme), Slate (Background), Sky Blue & Lime (Terminal) -->
+    <!-- Application Structure Plan: SPA ini dirancang untuk menyimulasikan pengalaman 'Wargame' (Capture The Flag) yang dibahas pada Modul 4. Mengingat modul ini sangat praktikal (Self-Paced Learning), aplikasi dipecah menjadi: 1) Teori Komunikasi Jarak Jauh (Visualisasi interaktif Telnet vs SSH), 2) Teknik Escaping (Penjelasan anomali nama file), 3) Wargame Simulator (Terminal berbasis JS yang dikonfigurasi khusus untuk menyelesaikan level Bandit 0-2), dan 4) Analisis Ancaman MITM. Struktur ini memastikan pengguna tidak hanya membaca teori, tetapi mempraktikkan sintaks CLI yang tidak umum secara langsung di dalam browser. -->
+    <!-- Visualization & Content Choices: 1. Telnet vs SSH -> Goal: Compare/Change -> Viz: Interactive HTML/CSS Diagram dengan JS Toggle -> Justification: Mendemonstrasikan enkripsi paket data secara visual. 2. Simulator Wargame -> Goal: Engagement -> Viz: JS-driven HTML Console -> Justification: Memungkinkan pengguna berlatih menyusup ke 'Bandit Labs' langsung (evaluasi formatif). 3. Keterampilan CTF -> Goal: Inform -> Viz: Radar Chart (Chart.js) -> Justification: Menunjukkan distribusi skill yang diasah melalui tantangan CTF. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-user-secret mr-2"></i> Modul 4 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#koneksi" class="hover:text-brand-600 transition-colors">Remote Admin</a>
+                    <a href="#escaping" class="hover:text-brand-600 transition-colors">Teknik Escaping</a>
+                    <a href="#wargame" class="hover:text-brand-600 transition-colors">Wargame Simulator</a>
+                    <a href="#evaluasi" class="hover:text-brand-600 transition-colors">Ancaman MITM</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 font-mono text-xs overflow-hidden select-none pointer-events-none text-brand-500" aria-hidden="true">
+            ssh bandit0@bandit.labs.overthewire.org -p 2220<br>cat readme<br>cat ./-<br>cat "spaces in this filename"<br>ssh bandit1@bandit.labs.overthewire.org<br>cat readme<br>cat ./-<br>cat "spaces in this filename"<br>ssh bandit0@bandit.labs.overthewire.org -p 2220
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 4</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Eksplorasi Interaktif & Wargame</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Tingkatkan insting <em>problem-solving</em> CLI Anda melalui tantangan <em>Capture The Flag</em> (CTF). Pelajari administrasi server jarak jauh yang aman dan taklukkan anomali sistem file.
+            </p>
+            <a href="#wargame" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-terminal mr-2"></i> Masuk ke Simulator CTF
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <section id="koneksi" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Protokol Administrasi Jarak Jauh (Remote)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Seorang administrator sistem jarang duduk di depan fisik server. Mereka bekerja dari laptop (Client) untuk mengendalikan server jarak jauh menggunakan protokol jaringan.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center mb-12">
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-red-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl">Telnet (Masa Lalu)</h3>
+                        <p class="text-sm !mb-0">Protokol usang. Mengirimkan semua data komando dan <em>password</em> ke server dalam bentuk teks terang (<em>plaintext</em>). Sangat mudah disadap oleh <em>hacker</em> di jaringan yang sama.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-brand-500">
+                        <h3 class="!mt-0 !mb-2 !pb-0 !border-none text-xl">Secure Shell / SSH (Standar Modern)</h3>
+                        <p class="text-sm !mb-0">Membentuk "lorong terenkripsi" kriptografis antara laptop Anda dan server. Jika disadap, <em>hacker</em> hanya akan melihat data acak yang tidak bisa dibaca.</p>
+                        <div class="mt-4 bg-slate-100 p-3 rounded font-mono text-xs text-slate-800">
+                            Sintaks: <strong class="text-brand-700">ssh [username]@[ip_address] -p [port]</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-8 rounded-2xl shadow-md text-white">
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="!mt-0 !mb-0 text-white">Simulasi Penyadapan (Sniffing)</h4>
+                        <button id="toggle-protocol" class="bg-slate-600 hover:bg-slate-500 text-xs px-4 py-2 rounded-full transition-colors font-bold">
+                            Ubah ke SSH
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-700 relative h-32 overflow-hidden">
+                        <div class="text-center z-10 bg-slate-900 px-2">
+                            <div class="text-3xl mb-1">💻</div>
+                            <div class="text-xs text-slate-400">Client</div>
+                        </div>
+
+                        <div class="flex-grow mx-4 relative h-full flex items-center">
+                            <div class="absolute inset-0 border-b-2 border-dashed border-slate-600 top-1/2"></div>
+                            
+                            <div id="packet" class="bg-red-500 text-white text-xs font-mono px-2 py-1 rounded absolute left-0 packet-animation shadow-[0_0_10px_rgba(239,68,68,0.8)]">
+                                pass:admin123
+                            </div>
+
+                            <div class="absolute top-2 left-1/2 transform -translate-x-1/2 text-center bg-slate-900 px-2 z-10">
+                                <div class="text-2xl">🕵️</div>
+                                <div class="text-[10px] text-red-400 font-bold" id="hacker-status">Hacker melihat: pass:admin123</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center z-10 bg-slate-900 px-2">
+                            <div class="text-3xl mb-1">🖥️</div>
+                            <div class="text-xs text-slate-400">Server</div>
+                        </div>
+                    </div>
+                    <p id="protocol-desc" class="text-xs text-slate-400 mt-4 text-center">
+                        <strong class="text-red-400">TELNET AKTIF:</strong> Data dikirim tanpa enkripsi. Penyadapan berhasil mutlak.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="escaping" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Menaklukkan Anomali Sistem File</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Dalam sistem Linux, nama file dengan karakter khusus (spasi, tanda strip/minus) akan membuat terminal kebingungan dan memicu <em>error</em>. Pelajari trik penanganannya.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="callout bg-amber-50 border-amber-500 text-amber-900 !mb-0">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-amber-900">Masalah Karakter Spasi</h3>
+                        <span class="text-2xl">␣</span>
+                    </div>
+                    <p class="text-sm">Jika ada file bernama <code>data rahasia.txt</code>, mengetik <code>cat data rahasia.txt</code> akan membuat Bash mencari dua file berbeda: "data" dan "rahasia.txt".</p>
+                    <div class="mt-4">
+                        <strong class="text-sm">Solusi Quoting:</strong>
+                        <div class="bg-white p-2 rounded border border-amber-200 font-mono text-xs mt-1">cat "data rahasia.txt"</div>
+                    </div>
+                    <div class="mt-2">
+                        <strong class="text-sm">Solusi Escaping:</strong>
+                        <div class="bg-white p-2 rounded border border-amber-200 font-mono text-xs mt-1">cat data\ rahasia.txt</div>
+                    </div>
+                </div>
+
+                <div class="callout bg-blue-50 border-blue-500 text-blue-900 !mb-0">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-blue-900">Masalah Karakter Strip (-)</h3>
+                        <span class="text-2xl">-</span>
+                    </div>
+                    <p class="text-sm">Jika ada file bernama <code>-fileku</code>, perintah <code>cat -fileku</code> akan memicu <em>error</em> karena Bash mengira <code>-fileku</code> adalah sebuah opsi (flags), bukan nama file.</p>
+                    <div class="mt-4">
+                        <strong class="text-sm">Solusi Path Relatif:</strong>
+                        <div class="bg-white p-2 rounded border border-blue-200 font-mono text-xs mt-1">cat ./-fileku</div>
+                    </div>
+                    <p class="text-xs mt-2 italic text-blue-700">Penambahan <code>./</code> memaksa Bash membacanya sebagai alamat file di direktori saat ini.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="wargame" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Simulator Wargame (Bandit Labs)</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Waktunya praktik! Anda berada di laptop lokal. Gunakan terminal di bawah ini untuk meretas masuk ke server <strong>OverTheWire Bandit</strong> level 0 hingga level 2 dengan memanfaatkan teori SSH dan Escaping yang telah dipelajari.</p>
+            </div>
+
+            <div class="bg-term-bg rounded-2xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col lg:flex-row">
+                
+                <!-- Mission Briefing Panel -->
+                <div class="w-full lg:w-1/3 bg-slate-900 border-r border-slate-700 p-6 flex flex-col">
+                    <div class="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="ml-2 font-mono text-xs text-slate-400">Mission_Control</span>
+                    </div>
+                    
+                    <div id="mission-panel" class="flex-grow space-y-4">
+                        <div class="bg-brand-900/50 border border-brand-500/30 p-4 rounded-xl">
+                            <h4 class="text-brand-300 font-bold text-sm uppercase tracking-wider mb-2">Target: Level 0</h4>
+                            <p class="text-slate-300 text-xs leading-relaxed">
+                                Lakukan koneksi SSH ke server wargame.<br><br>
+                                <strong>Host:</strong> bandit.labs.overthewire.org<br>
+                                <strong>User:</strong> bandit0<br>
+                                <strong>Port:</strong> 2220<br>
+                                <strong>Pass:</strong> bandit0
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-slate-700 text-xs text-slate-500 text-center">
+                        Simulator mendukung perintah: <code class="text-slate-400 bg-transparent">ssh, ls, cat, clear, exit</code>
+                    </div>
+                </div>
+
+                <!-- Interactive Terminal -->
+                <div class="w-full lg:w-2/3 p-4 md:p-6 font-mono text-sm md:text-base text-term-text h-[400px] flex flex-col relative" onclick="document.getElementById('term-input').focus()">
+                    <div id="term-output" class="flex-grow overflow-y-auto term-scroll pb-2 space-y-1 break-all">
+                        <div class="text-slate-500">SimOS Local Terminal v1.0.0</div>
+                        <div class="text-slate-500 mb-4">Ready.</div>
+                    </div>
+                    
+                    <div class="flex mt-2 items-start">
+                        <span id="term-prompt" class="font-bold mr-2 whitespace-nowrap text-term-prompt">user@local:~$</span>
+                        <input type="text" id="term-input" class="flex-grow bg-transparent border-none outline-none text-term-text font-mono focus:ring-0" autocomplete="off" spellcheck="false" autofocus>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="evaluasi" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Ancaman & Keterampilan Lanjut</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Menganalisis arsitektur keamanan koneksi jarak jauh dan memetakan keterampilan yang dikembangkan melalui aktivitas Capture The Flag (CTF).</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="callout bg-red-50 border-red-500 text-red-900 !mb-0">
+                    <div class="flex items-center gap-3 mb-4 border-b border-red-200 pb-3">
+                        <span class="text-3xl">🎭</span>
+                        <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-red-900">Man-In-The-Middle (MITM)</h3>
+                    </div>
+                    <p class="text-sm">Saat Anda menggunakan SSH untuk pertama kali, sistem akan memunculkan peringatan <em>"The authenticity of host... can't be established"</em> beserta sebuah kode <strong>Fingerprint</strong> acak.</p>
+                    <p class="text-sm mt-3"><strong>Mengapa ini penting?</strong></p>
+                    <p class="text-sm mt-1">Ini adalah perlindungan terhadap MITM Attack. Hacker bisa membuat server palsu yang mencegat koneksi Anda untuk mencuri password. Fingerprint memastikan bahwa server yang merespons koneksi benar-benar server asli yang Anda tuju, bukan server penipu di tengah jalan.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="text-center font-bold text-slate-800 mb-2">Peta Keterampilan Wargame CTF</h4>
+                    <div class="chart-container">
+                        <canvas id="ctfChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. TELNET VS SSH TOGGLE LOGIC
+        // ==========================================
+        let isSSH = false;
+        const btnToggle = document.getElementById('toggle-protocol');
+        const packet = document.getElementById('packet');
+        const hackerStatus = document.getElementById('hacker-status');
+        const protocolDesc = document.getElementById('protocol-desc');
+
+        btnToggle.addEventListener('click', () => {
+            isSSH = !isSSH;
+            if(isSSH) {
+                btnToggle.textContent = 'Ubah ke Telnet';
+                btnToggle.className = 'bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2 rounded-full transition-colors font-bold';
+                packet.className = 'bg-emerald-500 text-white text-xs font-mono px-2 py-1 rounded absolute left-0 packet-animation shadow-[0_0_10px_rgba(16,185,129,0.8)]';
+                packet.textContent = 'x8Q!pL9#z*';
+                hackerStatus.textContent = 'Hacker melihat: x8Q!pL9#z*';
+                hackerStatus.className = 'text-[10px] text-emerald-400 font-bold';
+                protocolDesc.innerHTML = '<strong class="text-emerald-400">SSH AKTIF:</strong> Data dienkripsi. Hacker hanya menyadap sampah digital.';
+            } else {
+                btnToggle.textContent = 'Ubah ke SSH';
+                btnToggle.className = 'bg-slate-600 hover:bg-slate-500 text-white text-xs px-4 py-2 rounded-full transition-colors font-bold';
+                packet.className = 'bg-red-500 text-white text-xs font-mono px-2 py-1 rounded absolute left-0 packet-animation shadow-[0_0_10px_rgba(239,68,68,0.8)]';
+                packet.textContent = 'pass:admin123';
+                hackerStatus.textContent = 'Hacker melihat: pass:admin123';
+                hackerStatus.className = 'text-[10px] text-red-400 font-bold';
+                protocolDesc.innerHTML = '<strong class="text-red-400">TELNET AKTIF:</strong> Data dikirim tanpa enkripsi. Penyadapan berhasil mutlak.';
+            }
+        });
+
+        // ==========================================
+        // 2. CHART.JS INITIALIZATION
+        // ==========================================
+        function initChart() {
+            const ctx = document.getElementById('ctfChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Problem Solving', 'Remote Admin (SSH)', 'Escaping Path', 'Membaca Manual (man)', 'Navigasi Hierarki'],
+                    datasets: [{
+                        label: 'Peningkatan Kompetensi (%)',
+                        data: [95, 80, 100, 70, 85],
+                        backgroundColor: 'rgba(217, 70, 239, 0.2)', // Brand 500
+                        borderColor: 'rgba(217, 70, 239, 1)',
+                        pointBackgroundColor: 'rgba(217, 70, 239, 1)',
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            min: 0,
+                            max: 100,
+                            ticks: { stepSize: 20, display: false },
+                            pointLabels: { font: { size: 10, family: 'Inter', weight: 'bold' }, color: '#475569' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // ==========================================
+        // 3. TERMINAL SIMULATOR LOGIC (WARGAME)
+        // ==========================================
+        const termInput = document.getElementById('term-input');
+        const termOutput = document.getElementById('term-output');
+        const termPrompt = document.getElementById('term-prompt');
+        const missionPanel = document.getElementById('mission-panel');
+
+        const state = {
+            mode: 'local', // 'local', 'password', 'ssh'
+            user: 'user',
+            host: 'local',
+            targetSshUser: null,
+            level: 0,
+            passwords: {
+                'bandit0': 'bandit0',
+                'bandit1': 'boJ9jbbUNNfktdcg',
+                'bandit2': 'CV1DtqXWVFXTvM2F'
+            },
+            fs: {
+                'bandit0': { 'readme': 'boJ9jbbUNNfktdcg' },
+                'bandit1': { '-': 'CV1DtqXWVFXTvM2F' },
+                'bandit2': { 'spaces in this filename': 'UmHadQclWmgdLOKQ' }
+            }
+        };
+
+        const missions = [
+            `
+            <div class="bg-brand-900/50 border border-brand-500/30 p-4 rounded-xl animate-[pulse_2s_ease-in-out_infinite]">
+                <h4 class="text-brand-300 font-bold text-sm uppercase tracking-wider mb-2">Target: Level 0</h4>
+                <p class="text-slate-300 text-xs leading-relaxed">
+                    Lakukan koneksi SSH ke server wargame.<br><br>
+                    <strong>Host:</strong> bandit.labs.overthewire.org<br>
+                    <strong>User:</strong> bandit0<br>
+                    <strong>Port:</strong> 2220<br>
+                    <strong>Pass:</strong> bandit0
+                </p>
+            </div>`,
+            `
+            <div class="bg-blue-900/50 border border-blue-500/30 p-4 rounded-xl animate-[pulse_2s_ease-in-out_infinite]">
+                <h4 class="text-blue-300 font-bold text-sm uppercase tracking-wider mb-2">Target: Level 1</h4>
+                <p class="text-slate-300 text-xs leading-relaxed">
+                    Bagus! Anda berada di server. Password untuk level selanjutnya (bandit1) ada di dalam file bernama <code class="bg-transparent text-white px-1">readme</code>.<br><br>Gunakan perintah <code class="bg-transparent text-white px-1">ls</code> dan <code class="bg-transparent text-white px-1">cat</code>.
+                </p>
+            </div>`,
+            `
+            <div class="bg-amber-900/50 border border-amber-500/30 p-4 rounded-xl">
+                <h4 class="text-amber-300 font-bold text-sm uppercase tracking-wider mb-2">Target: Level 2</h4>
+                <p class="text-slate-300 text-xs leading-relaxed">
+                    Password <code class="bg-transparent text-white">boJ9jbbUNNfktdcg</code> ditemukan!<br>Ketik <code class="bg-transparent text-white">exit</code> untuk kembali ke lokal, lalu login sebagai <strong>bandit1</strong>.<br><br>
+                    Di sana, password ada di file bernama <code class="bg-transparent text-white">-</code>.<br>
+                    Hati-hati anomali tanda strip!
+                </p>
+            </div>`,
+            `
+            <div class="bg-emerald-900/50 border border-emerald-500/30 p-4 rounded-xl">
+                <h4 class="text-emerald-300 font-bold text-sm uppercase tracking-wider mb-2">Target: Level 3</h4>
+                <p class="text-slate-300 text-xs leading-relaxed">
+                    Password <code class="bg-transparent text-white">CV1DtqXWVFXTvM2F</code> ditemukan!<br>Login sebagai <strong>bandit2</strong>.<br><br>
+                    Password ada di file bernama <code class="bg-transparent text-white">spaces in this filename</code>.<br>
+                    Terapkan teknik Quoting!
+                </p>
+            </div>`,
+            `
+            <div class="bg-fuchsia-900/50 border border-fuchsia-500/30 p-4 rounded-xl">
+                <h4 class="text-fuchsia-300 font-bold text-sm uppercase tracking-wider mb-2">SIMULASI SELESAI</h4>
+                <p class="text-slate-300 text-xs leading-relaxed">
+                    Selamat! Anda telah memahami fundamental koneksi SSH dan manipulasi file aneh di Linux.<br><br>
+                    Silakan akses situs web asli OverTheWire untuk tantangan yang sebenarnya.
+                </p>
+            </div>`
+        ];
+
+        function printLine(text, isHtml = false, colorClass = 'text-term-text') {
+            const div = document.createElement('div');
+            if(isHtml) div.innerHTML = text;
+            else div.textContent = text;
+            div.className = colorClass;
+            termOutput.appendChild(div);
+            termOutput.scrollTop = termOutput.scrollHeight;
+        }
+
+        function updatePrompt() {
+            if(state.mode === 'password') {
+                termPrompt.textContent = `${state.targetSshUser}@bandit.labs.overthewire.org's password:`;
+                termPrompt.className = 'mr-2 whitespace-nowrap text-slate-300';
+                termInput.type = 'password';
+            } else {
+                termPrompt.textContent = `${state.user}@${state.host}:~$`;
+                termPrompt.className = 'font-bold mr-2 whitespace-nowrap text-term-prompt';
+                termInput.type = 'text';
+            }
+        }
+
+        function updateMission(lvl) {
+            if(missions[lvl]) {
+                missionPanel.innerHTML = missions[lvl];
+            }
+        }
+
+        termInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const rawCmd = this.value;
+                const cmd = rawCmd.trim();
+                this.value = '';
+
+                // Print prompt and command (except for password)
+                if (state.mode !== 'password') {
+                    printLine(`<span class="font-bold text-term-prompt">${state.user}@${state.host}:~$</span> ${rawCmd}`, true);
+                } else {
+                    printLine(`<span class="text-slate-300">${termPrompt.textContent}</span>`, true);
+                }
+
+                if (state.mode === 'password') {
+                    if (cmd === state.passwords[state.targetSshUser]) {
+                        state.mode = 'ssh';
+                        state.user = state.targetSshUser;
+                        state.host = 'bandit';
+                        printLine('Welcome to OverTheWire Bandit Labs.', false, 'text-slate-400');
+                        
+                        if(state.user === 'bandit0' && state.level === 0) { state.level = 1; updateMission(1); }
+                    } else {
+                        state.mode = 'local';
+                        printLine('Permission denied, please try again.', false, 'text-term-warn');
+                    }
+                    updatePrompt();
+                    return;
+                }
+
+                if (cmd === '') return;
+
+                // Simple parser handling quotes
+                const args = [];
+                let current = '';
+                let inQuotes = false;
+                for(let i=0; i<cmd.length; i++) {
+                    if(cmd[i] === '"' || cmd[i] === "'") { inQuotes = !inQuotes; continue; }
+                    if(cmd[i] === ' ' && !inQuotes) { if(current) args.push(current); current = ''; }
+                    else { current += cmd[i]; }
+                }
+                if(current) args.push(current);
+                
+                const mainCmd = args[0];
+
+                switch(mainCmd) {
+                    case 'ssh':
+                        if(state.mode === 'ssh') { printLine('bash: ssh: You are already in an SSH session'); break; }
+                        if(args.length < 2) { printLine('usage: ssh user@hostname [-p port]'); break; }
+                        
+                        let targetStr = args[1];
+                        let portOk = false;
+                        if(args.includes('-p') && args.includes('2220')) portOk = true;
+
+                        if(!portOk && targetStr.includes('bandit')) {
+                            printLine('ssh: connect to host port 22: Connection refused', false, 'text-term-warn');
+                            printLine('Hint: Did you forget the port? (-p 2220)', false, 'text-slate-400');
+                            break;
+                        }
+
+                        if (targetStr.includes('@')) {
+                            const parts = targetStr.split('@');
+                            state.targetSshUser = parts[0];
+                            if(state.passwords[state.targetSshUser]) {
+                                printLine(`The authenticity of host '[bandit.labs.overthewire.org]:2220' can't be established.`, false, 'text-slate-400');
+                                printLine(`ED25519 key fingerprint is SHA256:1x...`, false, 'text-slate-400');
+                                state.mode = 'password';
+                            } else {
+                                printLine('ssh: Could not resolve hostname');
+                            }
+                        } else {
+                            printLine('ssh: Invalid connection string');
+                        }
+                        break;
+                    
+                    case 'exit':
+                        if(state.mode === 'ssh') {
+                            printLine('logout');
+                            printLine('Connection to bandit.labs.overthewire.org closed.', false, 'text-slate-400');
+                            state.mode = 'local';
+                            state.user = 'user';
+                            state.host = 'local';
+                        } else {
+                            printLine('exit');
+                        }
+                        break;
+                    
+                    case 'ls':
+                        if(state.mode === 'ssh') {
+                            const files = Object.keys(state.fs[state.user] || {});
+                            if(files.length > 0) printLine(files.join(' '));
+                        } else {
+                            printLine(''); // local is empty
+                        }
+                        break;
+
+                    case 'cat':
+                        if(state.mode !== 'ssh') { printLine('cat: No files in local machine'); break; }
+                        if(args.length < 2) { printLine(''); break; }
+                        
+                        let targetFile = rawCmd.substring(4).trim(); // get raw arg
+                        
+                        // Escaping/Quoting parsing for Bandit levels
+                        let fileToRead = null;
+                        
+                        if (state.user === 'bandit0') {
+                            if(targetFile === 'readme') fileToRead = 'readme';
+                        } 
+                        else if (state.user === 'bandit1') {
+                            // Target is "-"
+                            if(targetFile === '-') {
+                                // Real bash behavior for `cat -` is reading from stdin. We simulate freeze.
+                                printLine('^C (Simulated freeze. Try using relative path ./-)', false, 'text-slate-400');
+                                break;
+                            } else if (targetFile === './-') {
+                                fileToRead = '-';
+                            }
+                        }
+                        else if (state.user === 'bandit2') {
+                            // Target is "spaces in this filename"
+                            if(targetFile === '"spaces in this filename"' || targetFile === 'spaces\\ in\\ this\\ filename') {
+                                fileToRead = 'spaces in this filename';
+                            } else {
+                                printLine('cat: spaces: No such file or directory');
+                                printLine('cat: in: No such file or directory');
+                                printLine('cat: this: No such file or directory');
+                                printLine('cat: filename: No such file or directory');
+                                break;
+                            }
+                        }
+
+                        if (fileToRead && state.fs[state.user][fileToRead]) {
+                            const content = state.fs[state.user][fileToRead];
+                            printLine(content);
+                            
+                            // Advance Level logic
+                            if(state.user === 'bandit0' && state.level === 1) { state.level = 2; updateMission(2); }
+                            if(state.user === 'bandit1' && state.level === 2) { state.level = 3; updateMission(3); }
+                            if(state.user === 'bandit2' && state.level === 3) { state.level = 4; updateMission(4); }
+                            
+                        } else {
+                            printLine(`cat: ${targetFile}: No such file or directory`);
+                        }
+                        break;
+
+                    case 'clear':
+                        termOutput.innerHTML = '';
+                        break;
+
+                    default:
+                        printLine(`${mainCmd}: command not found`);
+                }
+                updatePrompt();
+            }
+        });
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updateMission(state.level);
+        });
+    </script>
+</body>
+</html>

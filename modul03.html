@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 3: Manajemen User & Hak Akses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 700: '#15803d', 900: '#14532d' },
+                        perm: { r: '#3b82f6', w: '#f59e0b', x: '#ef4444' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Minimal embedded CSS for strict chart container control */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 320px; }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Custom Checkbox Styling for Calculator */
+        .perm-cb:checked + div {
+            @apply ring-2 shadow-md transform scale-[1.02];
+        }
+        .perm-cb-r:checked + div { @apply ring-blue-500 bg-blue-50 border-blue-200; }
+        .perm-cb-w:checked + div { @apply ring-amber-500 bg-amber-50 border-amber-200; }
+        .perm-cb-x:checked + div { @apply ring-red-500 bg-red-50 border-red-200; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Emerald (Brand/Interactive/Success), Slate (Background/Text), Blue/Amber/Red (RWX Accents) -->
+    <!-- Application Structure Plan: SPA ini dirancang dengan struktur 'Interactive Tool & Concept Dashboard'. Modul 3 berisi teori yang abstrak tentang permission dan user. Struktur dipecah menjadi: 1) Teori Identitas (Visualisasi hierarki pengguna), 2) Kalkulator Chmod Oktal (Alat utama interaktif untuk bereksperimen dengan angka perizinan), 3) Visualisasi Risiko Akses (Melihat dampak permission yang dibuat di kalkulator), dan 4) Fitur Keamanan Lanjut (Sticky bit & SUID). Desain ini mengajak mahasiswa belajar sambil mencoba (learning by doing) tanpa perlu menghafal perhitungan biner secara kaku. -->
+    <!-- Visualization & Content Choices: 1. Konsep User -> Goal: Inform -> Viz: Grid Cards dengan Ikon -> Justification: Memisahkan peran Root, User, dan Group secara jelas dan mudah dibaca. 2. Kalkulator Chmod -> Goal: Compute/Change -> Viz: Interactive Checkbox Grid (Vanilla JS) -> Justification: Mengubah hafalan matematis R=4, W=2, X=1 menjadi pengalaman interaktif visual. 3. Peta Distribusi Kuasa -> Goal: Compare/Relationships -> Viz: Radar Chart (Chart.js) -> Justification: Sangat efektif memvisualisasikan siapa (User, Group, atau Others) yang memiliki kontrol paling dominan terhadap suatu file, dan memberi warna merah jika konfigurasi berbahaya. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-users-cog mr-2"></i> Modul 3 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#identitas" class="hover:text-brand-600 transition-colors">Identitas Sistem</a>
+                    <a href="#kalkulator" class="hover:text-brand-600 transition-colors">Kalkulator Oktal</a>
+                    <a href="#lanjut" class="hover:text-brand-600 transition-colors">Keamanan Lanjut</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-28 pb-16 bg-brand-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 font-mono text-xs overflow-hidden select-none pointer-events-none" aria-hidden="true">
+            chmod 755 /var/www<br>chown root:root /etc/passwd<br>usermod -aG sudo budi<br>chmod u+s /usr/bin/passwd<br>chmod +t /tmp<br>chmod 777 public_html<br>chgrp developers project/
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 3</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Manajemen User, Group, & Hak Akses</h1>
+            <p class="text-lg md:text-xl text-brand-100 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Pahami arsitektur Multi-User Linux. Kuasai prinsip Least Privilege, manipulasi kepemilikan file, dan pelajari cara menghitung matriks perizinan (Permissions) secara interaktif.
+            </p>
+            <a href="#kalkulator" class="inline-block bg-white text-brand-900 font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-50 transition-transform transform hover:-translate-y-1">
+                🧮 Coba Kalkulator Chmod
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- Konsep Dasar Identitas -->
+        <section id="identitas" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-slate-800">Konsep Dasar & Identitas Sistem</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Linux memisahkan wewenang sistem secara ketat. Pahami perbedaan antara pengguna biasa, grup, dan peran absolut dari Superuser.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mb-4"><i class="fas fa-crown"></i></div>
+                    <h3 class="font-bold text-xl mb-2 text-slate-800">Superuser (Root)</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Pengguna absolut dengan UID 0. Kebal terhadap semua aturan hak akses. Dapat memodifikasi atau menghapus file apa pun di seluruh sistem.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-4"><i class="fas fa-user"></i></div>
+                    <h3 class="font-bold text-xl mb-2 text-slate-800">Regular User</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Pengguna biasa. Hanya memiliki kekuasaan penuh di dalam direktori pribadinya sendiri (<code class="bg-slate-100 px-1 rounded text-pink-600">/home/username</code>). Diatur ketat oleh permission.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-4"><i class="fas fa-users"></i></div>
+                    <h3 class="font-bold text-xl mb-2 text-slate-800">Group</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Kumpulan dari beberapa user. Memudahkan administrator memberi hak akses kolaborasi pada satu direktori kepada banyak orang sekaligus.</p>
+                </div>
+            </div>
+
+            <!-- Berkas Vital -->
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-10 items-center">
+                <div class="w-full lg:w-1/2">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-file-alt text-brand-500 mr-3"></i> Berkas Identitas Vital</h3>
+                    <p class="text-slate-600 mb-4 leading-relaxed">Linux tidak menyimpan data user di dalam database ajaib, melainkan di dalam dua file teks murni yang menjadi fondasi keamanan sistem:</p>
+                    <ul class="space-y-4">
+                        <li class="flex">
+                            <i class="fas fa-check-circle text-brand-500 mt-1 mr-3"></i>
+                            <div>
+                                <strong class="text-slate-800 font-mono bg-slate-100 px-2 py-0.5 rounded text-sm">/etc/passwd</strong>
+                                <p class="text-sm text-slate-600 mt-1">Berkas publik berisi pemetaan Username ke UID dan GID, letak direktori home, dan shell asal. Semua orang bisa membacanya.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <i class="fas fa-check-circle text-brand-500 mt-1 mr-3"></i>
+                            <div>
+                                <strong class="text-slate-800 font-mono bg-slate-100 px-2 py-0.5 rounded text-sm">/etc/shadow</strong>
+                                <p class="text-sm text-slate-600 mt-1">Berkas sangat rahasia penyimpan kata sandi yang telah dienkripsi (Hash). <strong>Hanya Root</strong> yang diizinkan membacanya.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="w-full lg:w-1/2 bg-slate-900 rounded-xl p-6 text-slate-300 font-mono text-sm shadow-inner w-full overflow-x-auto">
+                    <div class="text-brand-400 mb-2"># Contoh isi dari /etc/passwd</div>
+                    <div><span class="text-pink-400">root</span>:x:<span class="text-blue-300">0</span>:<span class="text-emerald-300">0</span>:root:/root:/bin/bash</div>
+                    <div><span class="text-pink-400">budi</span>:x:<span class="text-blue-300">1000</span>:<span class="text-emerald-300">1000</span>:Budi Santoso,,,:/home/budi:/bin/bash</div>
+                    <div class="text-brand-400 mt-6 mb-2"># Kunci Format Pembacaan:</div>
+                    <div class="text-xs text-slate-400">Username : Pwd_X : UID : GID : Info Tambahan : Home_Dir : Shell</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kalkulator Interaktif -->
+        <section id="kalkulator" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-slate-800">Kalkulator Hak Akses (Chmod Oktal)</h2>
+                <p class="text-slate-500 mt-3 max-w-3xl mx-auto">Setiap file memiliki 3 blok akses. Centang kotak R, W, X di bawah ini untuk melihat bagaimana Linux mengkalkulasi angka oktal dan mendistribusikan kekuasaan.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                
+                <!-- Input Panel -->
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Matriks Izin (Permissions)</h3>
+                    
+                    <div class="space-y-6">
+                        <!-- USER -->
+                        <div class="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
+                            <div class="font-bold text-slate-800 mb-3 flex justify-between items-center">
+                                <span><i class="fas fa-user text-blue-500 mr-2"></i> User (Pemilik)</span>
+                                <span class="text-xl font-mono font-bold text-brand-600 bg-brand-100 px-3 py-1 rounded" id="val-u">6</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-r" id="u-r" checked onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Read (4)</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-w" id="u-w" checked onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Write (2)</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-x" id="u-x" onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Exec (1)</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- GROUP -->
+                        <div class="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
+                            <div class="font-bold text-slate-800 mb-3 flex justify-between items-center">
+                                <span><i class="fas fa-users text-emerald-500 mr-2"></i> Group (Rekan)</span>
+                                <span class="text-xl font-mono font-bold text-brand-600 bg-brand-100 px-3 py-1 rounded" id="val-g">4</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-r" id="g-r" checked onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Read (4)</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-w" id="g-w" onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Write (2)</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-x" id="g-x" onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Exec (1)</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- OTHERS -->
+                        <div class="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
+                            <div class="font-bold text-slate-800 mb-3 flex justify-between items-center">
+                                <span><i class="fas fa-globe text-purple-500 mr-2"></i> Others (Publik)</span>
+                                <span class="text-xl font-mono font-bold text-brand-600 bg-brand-100 px-3 py-1 rounded" id="val-o">4</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-r" id="o-r" checked onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Read (4)</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-w" id="o-w" onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Write (2)</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="checkbox" class="sr-only perm-cb perm-cb-x" id="o-x" onchange="calcPermissions()">
+                                    <div class="border border-slate-300 rounded-lg p-3 text-center transition-all bg-white text-slate-500 hover:bg-slate-50">
+                                        <div class="font-bold text-sm md:text-base">Exec (1)</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="space-y-6">
+                    <div class="bg-brand-900 p-8 rounded-2xl shadow-md text-white text-center relative overflow-hidden h-full flex flex-col justify-center">
+                        <!-- Decoration -->
+                        <div class="absolute -right-10 -top-10 opacity-10">
+                            <i class="fas fa-shield-alt text-9xl"></i>
+                        </div>
+                        
+                        <h3 class="text-brand-200 font-semibold mb-4 uppercase tracking-widest text-sm z-10">Hasil Eksekusi</h3>
+                        
+                        <div class="text-7xl font-mono font-extrabold tracking-widest mb-6 z-10 text-white drop-shadow-lg" id="result-octal">
+                            644
+                        </div>
+                        
+                        <div class="bg-brand-950/80 p-4 rounded-xl font-mono text-xl md:text-2xl tracking-[0.3em] mb-6 border border-brand-700/50 z-10 shadow-inner inline-block mx-auto">
+                            -<span id="res-ur" class="text-blue-400">r</span><span id="res-uw" class="text-amber-400">w</span><span id="res-ux" class="text-red-400">-</span><span id="res-gr" class="text-blue-400">r</span><span id="res-gw" class="text-amber-400">-</span><span id="res-gx" class="text-red-400">-</span><span id="res-or" class="text-blue-400">r</span><span id="res-ow" class="text-amber-400">-</span><span id="res-ox" class="text-red-400">-</span>
+                        </div>
+                        
+                        <div class="text-sm text-brand-200 z-10 bg-brand-800/80 py-3 px-4 rounded-lg inline-block mx-auto border border-brand-700">
+                            Command: <code class="bg-transparent text-white border-none p-0 text-base font-bold">chmod <span id="cmd-octal">644</span> fileku.txt</code>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h4 class="text-center font-bold text-slate-800 mb-1">Peta Distribusi Kuasa</h4>
+                        <p id="risk-status" class="text-xs text-center font-semibold text-emerald-600 mb-4 uppercase tracking-wide">Status: AMAN</p>
+                        <div class="chart-container">
+                            <canvas id="permissionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Keamanan Lanjut -->
+        <section id="lanjut" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-slate-800">Keamanan Tingkat Lanjut</h2>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Skenario industri terkadang membutuhkan pengecualian dari aturan dasar RWX. Pelajari dua atribut khusus yang memodifikasi perilaku default Linux.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Sticky Bit -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-4 mb-4 border-b border-slate-100 pb-4">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl"><i class="fas fa-thumbtack"></i></div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Sticky Bit (+t)</h3>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Proteksi Hapus di Folder Publik</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                        Folder seperti <code class="bg-slate-100 px-1 rounded text-pink-600">/tmp</code> memiliki izin Write untuk semua orang (777). Bahayanya, User A bisa iseng menghapus file milik User B. 
+                    </p>
+                    <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                        Jika Sticky Bit aktif, <strong>hanya pemilik asli file tersebut (atau Root)</strong> yang bisa menghapus filenya, mengabaikan izin Write 777 yang ada di folder tersebut.
+                    </p>
+                    <div class="bg-slate-50 p-4 rounded-lg font-mono text-xs border border-slate-200 text-slate-700">
+                        <div class="mb-2">drwxrwxrw<strong class="text-blue-600 text-sm">t</strong> 10 root root 4096 /tmp</div>
+                        <div class="text-blue-600">chmod +t /nama_folder</div>
+                    </div>
+                </div>
+
+                <!-- SUID -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-red-500 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-4 mb-4 border-b border-slate-100 pb-4">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center text-2xl"><i class="fas fa-key"></i></div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">SUID (+s)</h3>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Set-User-ID / Pendelegasian Kuasa</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                        Program ganti password (<code class="bg-slate-100 px-1 rounded text-pink-600">passwd</code>) perlu menulis ke file rahasia <code>/etc/shadow</code>. Bagaimana user biasa bisa mengubah sandinya sendiri tanpa diberi hak Root?
+                    </p>
+                    <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                        Jika file executable diberi flag SUID, program tersebut saat dijalankan akan beroperasi <strong>menggunakan hak akses si pemilik file tersebut</strong> (Root), bukan hak akses orang yang mengkliknya.
+                    </p>
+                    <div class="bg-slate-50 p-4 rounded-lg font-mono text-xs border border-slate-200 text-slate-700">
+                        <div class="mb-2">-rw<strong class="text-red-600 text-sm">s</strong>r-xr-x 1 root root 6820 /usr/bin/passwd</div>
+                        <div class="text-red-600">chmod u+s /path/program</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-1">Disusun untuk Praktikum Sistem Operasi Berbasis OBE.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // ==========================================
+        // 1. CHART INITIALIZATION & LOGIC
+        // ==========================================
+        let radarChart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('permissionChart').getContext('2d');
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Kekuasaan USER', 'Kekuasaan GROUP', 'Kekuasaan OTHERS'],
+                    datasets: [{
+                        label: 'Level Izin (0-7)',
+                        data: [6, 4, 4],
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)', // Emerald default
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            min: 0,
+                            max: 7,
+                            ticks: { stepSize: 1, display: false },
+                            pointLabels: { font: { size: 11, family: 'Inter', weight: 'bold' }, color: '#475569' }
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return ` Level Akses: ${context.raw} / 7`; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 2. CALCULATOR LOGIC
+        // ==========================================
+        function getVal(id, val) {
+            return document.getElementById(id).checked ? val : 0;
+        }
+
+        function updateDisplayChar(id, val, checked) {
+            const el = document.getElementById(id);
+            el.textContent = checked ? val : '-';
+            // Custom coloring based on letter
+            if (!checked) {
+                el.className = 'text-slate-500/50';
+            } else {
+                if(val === 'r') el.className = 'text-blue-400';
+                if(val === 'w') el.className = 'text-amber-400';
+                if(val === 'x') el.className = 'text-red-400';
+            }
+        }
+
+        function calcPermissions() {
+            // Calculate numeric values (0-7)
+            const u = getVal('u-r', 4) + getVal('u-w', 2) + getVal('u-x', 1);
+            const g = getVal('g-r', 4) + getVal('g-w', 2) + getVal('g-x', 1);
+            const o = getVal('o-r', 4) + getVal('o-w', 2) + getVal('o-x', 1);
+
+            const octalStr = `${u}${g}${o}`;
+            
+            // Update Number Displays
+            document.getElementById('result-octal').textContent = octalStr;
+            document.getElementById('cmd-octal').textContent = octalStr;
+            document.getElementById('val-u').textContent = u;
+            document.getElementById('val-g').textContent = g;
+            document.getElementById('val-o').textContent = o;
+
+            // Update String Representation Displays (-rwxr-xr--)
+            updateDisplayChar('res-ur', 'r', document.getElementById('u-r').checked);
+            updateDisplayChar('res-uw', 'w', document.getElementById('u-w').checked);
+            updateDisplayChar('res-ux', 'x', document.getElementById('u-x').checked);
+            
+            updateDisplayChar('res-gr', 'r', document.getElementById('g-r').checked);
+            updateDisplayChar('res-gw', 'w', document.getElementById('g-w').checked);
+            updateDisplayChar('res-gx', 'x', document.getElementById('g-x').checked);
+            
+            updateDisplayChar('res-or', 'r', document.getElementById('o-r').checked);
+            updateDisplayChar('res-ow', 'w', document.getElementById('o-w').checked);
+            updateDisplayChar('res-ox', 'x', document.getElementById('o-x').checked);
+
+            // Update Radar Chart & Risk Status
+            if(radarChart) {
+                radarChart.data.datasets[0].data = [u, g, o];
+                const riskEl = document.getElementById('risk-status');
+                
+                // Color Logic based on security risk
+                if (o >= 6 || (g === 7 && o === 7)) {
+                    // Critical Risk (Public write access)
+                    radarChart.data.datasets[0].backgroundColor = 'rgba(239, 68, 68, 0.2)'; // Red
+                    radarChart.data.datasets[0].borderColor = 'rgba(239, 68, 68, 1)';
+                    radarChart.data.datasets[0].pointBackgroundColor = 'rgba(239, 68, 68, 1)';
+                    riskEl.textContent = 'Status: KRITIS (Orang Asing Bisa Mengedit File)';
+                    riskEl.className = 'text-xs text-center font-bold text-red-600 mb-4 uppercase tracking-wide';
+                } else if (g >= 6 || o === 2 || o === 3) {
+                    // Warning (Group write or public write only)
+                    radarChart.data.datasets[0].backgroundColor = 'rgba(245, 158, 11, 0.2)'; // Amber
+                    radarChart.data.datasets[0].borderColor = 'rgba(245, 158, 11, 1)';
+                    radarChart.data.datasets[0].pointBackgroundColor = 'rgba(245, 158, 11, 1)';
+                    riskEl.textContent = 'Status: WASPADA (Rekan Kerja Bisa Mengedit)';
+                    riskEl.className = 'text-xs text-center font-bold text-amber-600 mb-4 uppercase tracking-wide';
+                } else {
+                    // Safe
+                    radarChart.data.datasets[0].backgroundColor = 'rgba(34, 197, 94, 0.2)'; // Emerald
+                    radarChart.data.datasets[0].borderColor = 'rgba(34, 197, 94, 1)';
+                    radarChart.data.datasets[0].pointBackgroundColor = 'rgba(34, 197, 94, 1)';
+                    riskEl.textContent = 'Status: AMAN (Standar Industri)';
+                    riskEl.className = 'text-xs text-center font-bold text-emerald-600 mb-4 uppercase tracking-wide';
+                }
+                
+                radarChart.update();
+            }
+        }
+
+        // Initialize Everything
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            calcPermissions(); // Initial calculation on load
+        });
+    </script>
+</body>
+</html>

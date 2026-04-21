@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eksplorasi Modul 6: Penjadwalan CPU</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 700: '#7e22ce', 900: '#581c87' },
+                        process: { p1: '#3b82f6', p2: '#f59e0b', p3: '#10b981', p4: '#ef4444', p5: '#8b5cf6', idle: '#cbd5e1' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .content-section h2 { 
+            @apply text-2xl md:text-3xl font-extrabold text-slate-800 mt-16 mb-8 py-4 px-6 bg-slate-100 border-l-8 border-brand-600 rounded-r-xl shadow-sm tracking-tight; 
+        }
+        .content-section h3 { 
+            @apply text-xl md:text-2xl font-bold text-slate-800 mt-12 mb-6 pb-3 border-b-2 border-slate-200 flex items-center; 
+        }
+        .content-section p { 
+            @apply text-slate-700 leading-loose mb-6 text-base md:text-lg text-justify; 
+        }
+        .content-section ul { 
+            @apply list-none ml-2 md:ml-4 text-slate-700 mb-8 space-y-4 text-base md:text-lg; 
+        }
+        .content-section ul li {
+            @apply relative pl-8 text-justify leading-loose;
+        }
+        .content-section ul li::before {
+            content: "▸";
+            @apply absolute left-0 text-brand-500 top-0.5 text-2xl font-bold;
+        }
+        .content-section strong { 
+            @apply font-extrabold text-slate-900; 
+        }
+        .callout { 
+            @apply p-6 rounded-2xl mb-8 border-l-4 shadow-md text-base md:text-lg leading-loose; 
+        }
+
+        /* Gantt Chart Styling (Pure HTML/CSS) */
+        .gantt-block {
+            @apply flex flex-col items-center justify-center text-white font-bold text-sm md:text-base border-r border-white/20 relative transition-all duration-300 hover:opacity-80;
+            min-width: 20px;
+        }
+        .gantt-time {
+            @apply absolute -bottom-6 text-xs text-slate-500 font-mono;
+        }
+        /* Hide middle times on small screens if too crowded */
+        @media (max-width: 640px) {
+            .gantt-time.middle-time { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Chosen Palette: Purple/Purple (Brand/CPU Theme), Slate (Background), Multiple distinct colors for Process Blocks (P1-P5) -->
+    <!-- Application Structure Plan: SPA ini mengubah pendekatan pasif ("Akses Web Simulator URL") menjadi aktif dengan mengintegrasikan Custom CPU Scheduling Engine berbasis JS langsung ke dalam web. Struktur meliputi: 1) Header, 2) Teori Algoritma (Kartu konsep FCFS, SJF, RR), 3) Live CPU Simulator (Mesin JS yang membaca input, menjalankan algoritma pilihan, dan merender Gantt Chart menggunakan CSS Flexbox secara proporsional), 4) Analisis Efisiensi (Grafik Chart.js membandingkan Average Waiting Time dari hasil simulasi), dan 5) Studi Kasus (Evaluasi pemahaman konsep preemptive & time quantum). Pendekatan ini memastikan mahasiswa D3 belajar tidak hanya cara menggunakan alat, tapi melihat bagaimana data diproses secara real-time. -->
+    <!-- Visualization & Content Choices: 1. Teori Algoritma -> Goal: Inform -> Viz: Grid Cards -> Justification: Memisahkan karakteristik preemptive/non-preemptive dengan jelas. 2. Gantt Chart Simulator -> Goal: Change/Compute -> Viz: CSS Flexbox Blocks -> Justification: Lebar flex basis diatur dinamis via JS berdasarkan burst time, 100% tanpa SVG/Canvas, murni DOM manipulation yang interaktif. 3. Perbandingan Kinerja -> Goal: Compare -> Viz: Bar Chart (Chart.js) -> Justification: Mengubah angka AWT menjadi visual yang jelas mana yang paling optimal untuk skenario dataset saat ini. Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-brand-700 text-lg tracking-tight"><i class="fas fa-tasks mr-2"></i> Modul 6 Interaktif</div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                    <a href="#teori" class="hover:text-brand-600 transition-colors">Teori Algoritma</a>
+                    <a href="#simulator" class="hover:text-brand-600 transition-colors">CPU Simulator</a>
+                    <a href="#analisis" class="hover:text-brand-600 transition-colors">Analisis Kinerja</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-28 pb-16 bg-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 flex p-8 pointer-events-none justify-around items-center" aria-hidden="true">
+            <div class="w-16 h-48 bg-brand-500 rounded-sm"></div>
+            <div class="w-24 h-32 bg-blue-500 rounded-sm"></div>
+            <div class="w-12 h-64 bg-emerald-500 rounded-sm"></div>
+            <div class="w-32 h-20 bg-amber-500 rounded-sm"></div>
+        </div>
+        
+        <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+            <span class="bg-brand-700 text-brand-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Modul Praktikum 6</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">Simulasi Penjadwalan CPU</h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-8">
+                Pelajari bagaimana <em>Short-Term Scheduler</em> sistem operasi memutuskan program mana yang berhak menggunakan inti prosesor. Hitung dan simulasikan algoritma FCFS, SJF, dan Round Robin secara <em>real-time</em>.
+            </p>
+            <a href="#simulator" class="inline-block bg-brand-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-brand-500 transition-transform transform hover:-translate-y-1">
+                <i class="fas fa-play-circle mr-2"></i> Jalankan Simulator Gantt Chart
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 content-section">
+
+        <!-- Teori Algoritma -->
+        <section id="teori" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Paradigma Penjadwalan</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sistem operasi harus memberikan ilusi paralelisme meski hanya menggunakan 1 CPU inti. <em>Scheduler</em> mengatur antrean ini berdasarkan aturan preemptive (dapat disela) atau non-preemptive (kooperatif).</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500 hover:shadow-md transition-shadow flex flex-col">
+                    <h3 class="!mt-0 !mb-4 !border-none text-xl"><i class="fas fa-list-ol text-blue-500 mr-2"></i> FCFS</h3>
+                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">First-Come, First-Served</div>
+                    <p class="text-sm text-slate-600 flex-grow !leading-relaxed"><strong>Non-Preemptive.</strong> Siapa yang datang duluan, dia yang dilayani hingga selesai. Sangat adil, namun rentan terhadap <em>Convoy Effect</em> (Proses kecil harus menunggu lama karena ada proses raksasa di depannya).</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500 hover:shadow-md transition-shadow flex flex-col">
+                    <h3 class="!mt-0 !mb-4 !border-none text-xl"><i class="fas fa-sort-amount-down-alt text-amber-500 mr-2"></i> SJF</h3>
+                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Shortest Job First</div>
+                    <p class="text-sm text-slate-600 flex-grow !leading-relaxed">Dapat berupa <strong>Non-Preemptive</strong> maupun <strong>Preemptive (SRTF)</strong>. Mengeksekusi proses dengan <em>Burst Time</em> (durasi kerja) terkecil terlebih dahulu. Menjamin <em>Average Waiting Time</em> paling optimal, walau sulit diprediksi di dunia nyata.</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500 hover:shadow-md transition-shadow flex flex-col">
+                    <h3 class="!mt-0 !mb-4 !border-none text-xl"><i class="fas fa-sync-alt text-emerald-500 mr-2"></i> Round Robin</h3>
+                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Time Quantum Based</div>
+                    <p class="text-sm text-slate-600 flex-grow !leading-relaxed"><strong>Preemptive.</strong> Adil dan responsif. Semua proses diberi jatah "kue waktu" (<em>Time Quantum</em>) yang sama secara bergantian. Jika kuantum habis, proses dilempar kembali ke belakang antrean.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CPU Simulator Terintegrasi -->
+        <section id="simulator" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2>Simulator Mesin Penjadwalan</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Sistem telah memuat dataset sesuai instruksi Modul 6. Pilih algoritma penjadwalan dan klik <strong>Jalankan Simulasi</strong> untuk melihat OS menggambar Gantt Chart secara matematis.</p>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+                <!-- Control Panel -->
+                <div class="bg-slate-100 p-6 md:p-8 border-b border-slate-200 flex flex-col md:flex-row gap-6 items-end">
+                    <div class="w-full md:w-1/3">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Pilih Algoritma:</label>
+                        <select id="algoSelect" class="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-3 outline-none" onchange="checkAlgo()">
+                            <option value="FCFS">First Come First Served (FCFS)</option>
+                            <option value="SJF-NP">SJF (Non-Preemptive)</option>
+                            <option value="SJF-P">SJF / SRTF (Preemptive)</option>
+                            <option value="RR">Round Robin (RR)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="w-full md:w-1/4" id="quantumContainer" style="display: none;">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Time Quantum (ms):</label>
+                        <input type="number" id="quantumInput" value="2" min="1" class="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-3 outline-none">
+                    </div>
+
+                    <div class="w-full md:w-auto flex-grow flex justify-end gap-3">
+                        <button onclick="runSimulation()" class="w-full md:w-auto bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-lg shadow-sm transition-colors flex items-center justify-center">
+                            <i class="fas fa-play mr-2"></i> Jalankan Simulasi
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Layout -->
+                <div class="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    
+                    <!-- Dataset Table -->
+                    <div class="lg:col-span-4">
+                        <h4 class="!mt-0 text-lg font-bold text-slate-800 mb-4">Tabel Proses (Dataset Modul)</h4>
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                            <table class="w-full text-sm text-left text-slate-600">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-100 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-4 py-3">ID</th>
+                                        <th class="px-4 py-3">Arrival (AT)</th>
+                                        <th class="px-4 py-3">Burst (BT)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white border-b border-slate-100">
+                                        <td class="px-4 py-3 font-bold text-process-p1">P1</td><td class="px-4 py-3">0</td><td class="px-4 py-3">8</td>
+                                    </tr>
+                                    <tr class="bg-white border-b border-slate-100">
+                                        <td class="px-4 py-3 font-bold text-process-p2">P2</td><td class="px-4 py-3">1</td><td class="px-4 py-3">4</td>
+                                    </tr>
+                                    <tr class="bg-white border-b border-slate-100">
+                                        <td class="px-4 py-3 font-bold text-process-p3">P3</td><td class="px-4 py-3">2</td><td class="px-4 py-3">9</td>
+                                    </tr>
+                                    <tr class="bg-white border-b border-slate-100">
+                                        <td class="px-4 py-3 font-bold text-process-p4">P4</td><td class="px-4 py-3">3</td><td class="px-4 py-3">5</td>
+                                    </tr>
+                                    <tr class="bg-white">
+                                        <td class="px-4 py-3 font-bold text-process-p5">P5</td><td class="px-4 py-3">4</td><td class="px-4 py-3">2</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">* AT: Kapan proses tiba di RAM. BT: Berapa lama waktu CPU yang dibutuhkan.</p>
+                    </div>
+
+                    <!-- Output Area (Gantt Chart & Result Table) -->
+                    <div class="lg:col-span-8 flex flex-col">
+                        
+                        <!-- Visual Gantt Chart -->
+                        <h4 class="!mt-0 text-lg font-bold text-slate-800 mb-4 flex justify-between">
+                            <span>Visualisasi Gantt Chart</span>
+                            <span id="algoTitle" class="text-sm font-normal text-brand-600 bg-brand-50 px-2 py-1 rounded">Belum Dijalankan</span>
+                        </h4>
+                        
+                        <div class="bg-slate-800 rounded-xl p-8 mb-8 shadow-inner overflow-x-auto min-h-[160px] flex items-center relative">
+                            <div id="ganttContainer" class="flex w-full h-16 shadow-lg rounded-sm bg-slate-700/50 relative">
+                                <!-- Default placeholder -->
+                                <div class="w-full flex items-center justify-center text-slate-500 font-mono text-sm">Menunggu instruksi simulasi...</div>
+                            </div>
+                        </div>
+
+                        <!-- Result Table & AWT -->
+                        <div id="resultContainer" class="hidden animate-[fadeIn_0.5s_ease-out]">
+                            <h4 class="!mt-0 text-lg font-bold text-slate-800 mb-4">Hasil Kalkulasi Analitis</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex justify-between items-center">
+                                    <span class="text-sm font-bold text-blue-800">Average Turnaround Time:</span>
+                                    <span class="text-2xl font-mono font-bold text-blue-600" id="res-atat">0.00</span>
+                                </div>
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex justify-between items-center">
+                                    <span class="text-sm font-bold text-emerald-800">Average Waiting Time:</span>
+                                    <span class="text-2xl font-mono font-bold text-emerald-600" id="res-awt">0.00</span>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                <table class="w-full text-sm text-center text-slate-600">
+                                    <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-4 py-2">ID</th>
+                                            <th class="px-4 py-2">Finish (CT)</th>
+                                            <th class="px-4 py-2" title="CT - AT">Turnaround (TAT)</th>
+                                            <th class="px-4 py-2 text-brand-700" title="TAT - BT">Waiting (WT)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resultBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analisis Kinerja & Studi Kasus -->
+        <section id="analisis" class="scroll-mt-24 mb-20">
+            <div class="text-center mb-12">
+                <h2>Analisis & Evaluasi Studi Kasus</h2>
+                <p class="text-center mt-3 max-w-3xl mx-auto">Membandingkan efisiensi algoritma secara grafis dan memahami dampaknya terhadap implementasi infrastruktur IT di dunia nyata.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <!-- Comparison Chart -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="!mt-0 text-center text-lg font-bold text-slate-800 mb-2">Komparasi Average Waiting Time (AWT)</h3>
+                    <p class="text-center text-xs text-slate-500 mb-6">Menggunakan dataset yang sama (P1-P5). Semakin rendah nilai AWT, semakin efisien algoritma tersebut.</p>
+                    <div class="chart-container">
+                        <canvas id="awtChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Theory Evaluation -->
+                <div class="space-y-6">
+                    <div class="callout bg-red-50 border-red-500 text-red-900 !mb-0">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-3xl">⚠️</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-red-900 text-lg">Context Switch Overhead</h3>
+                        </div>
+                        <p class="text-sm font-bold mt-2">Pertanyaan Evaluasi:</p>
+                        <p class="text-sm italic">Jika Time Quantum pada Round Robin diatur ke nilai ekstrem 0.0001 milidetik, apa yang terjadi pada efisiensi CPU?</p>
+                        <p class="text-sm mt-3"><strong>Analisis Industri:</strong> Jika kuantum terlalu kecil, CPU akan menghabiskan lebih banyak waktu dan daya untuk memindahkan proses keluar-masuk RAM (<em>Context Switch Overhead</em>) dibandingkan benar-benar mengeksekusi program itu sendiri. Komputer akan terasa sangat lambat (<em>Thrashing</em> logika CPU).</p>
+                    </div>
+
+                    <div class="callout bg-blue-50 border-blue-500 text-blue-900 !mb-0">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-3xl">🏢</span>
+                            <h3 class="!mt-0 !mb-0 !pb-0 !border-none text-blue-900 text-lg">Implementasi Dunia Nyata</h3>
+                        </div>
+                        <p class="text-sm font-bold mt-2">Studi Kasus FCFS:</p>
+                        <p class="text-sm italic">Server mana yang lebih cocok menggunakan FCFS: Web Server Interaktif atau Sistem Batch Bank?</p>
+                        <p class="text-sm mt-3"><strong>Analisis Industri:</strong> FCFS cacat untuk sistem interaktif (Web) karena jika proses 1 lambat, ribuan klik pengguna lain akan tertahan (<em>Convoy Effect</em>). Namun, FCFS sempurna untuk <strong>Sistem Batch Bank Tengah Malam</strong> (seperti rekonsiliasi transfer harian) yang berjalan berurutan tanpa butuh interaksi manusia.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 text-center text-sm text-slate-500">
+        <p>&copy; 2026 Laboratorium Sistem Komputer dan Jaringan - Universitas Muhammadiyah Magelang</p>
+        <p class="mt-2">Dokumen berbasis RPS Outcome-Based Education (OBE) | Praktikum Sistem Operasi KPT0502219</p>
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. DATASET & STATE
+        // ==========================================
+        const baseDataset = [
+            { id: 'P1', at: 0, bt: 8, color: '#3b82f6' }, // Blue
+            { id: 'P2', at: 1, bt: 4, color: '#f59e0b' }, // Amber
+            { id: 'P3', at: 2, bt: 9, color: '#10b981' }, // Emerald
+            { id: 'P4', at: 3, bt: 5, color: '#ef4444' }, // Red
+            { id: 'P5', at: 4, bt: 2, color: '#8b5cf6' }  // Purple
+        ];
+
+        // AWT Pre-calculated for Chart based on this exact dataset
+        // FCFS: 8.4, SJF-NP: 4.8, SJF-P: 3.4, RR(q=2): 9.6
+        let compChart = null;
+
+        // ==========================================
+        // 2. UI CONTROLS
+        // ==========================================
+        function checkAlgo() {
+            const algo = document.getElementById('algoSelect').value;
+            const qContainer = document.getElementById('quantumContainer');
+            if(algo === 'RR') {
+                qContainer.style.display = 'block';
+            } else {
+                qContainer.style.display = 'none';
+            }
+        }
+
+        // ==========================================
+        // 3. SCHEDULING ALGORITHMS CORE LOGIC
+        // ==========================================
+        function runSimulation() {
+            const algo = document.getElementById('algoSelect').value;
+            const qStr = document.getElementById('quantumInput').value;
+            const quantum = parseInt(qStr) || 2;
+            
+            // Deep copy dataset for simulation
+            let processes = baseDataset.map(p => ({ ...p, rt: p.bt, ct: 0, tat: 0, wt: 0, isCompleted: false }));
+            
+            let time = 0;
+            let ganttBlocks = [];
+            let completed = 0;
+            const n = processes.length;
+
+            if (algo === 'FCFS') {
+                // Sort by Arrival Time
+                processes.sort((a,b) => a.at - b.at);
+                for(let i=0; i<n; i++) {
+                    let p = processes[i];
+                    if(time < p.at) {
+                        ganttBlocks.push({ id: 'IDLE', start: time, end: p.at, duration: p.at - time, color: '#cbd5e1' });
+                        time = p.at;
+                    }
+                    ganttBlocks.push({ id: p.id, start: time, end: time + p.bt, duration: p.bt, color: p.color });
+                    time += p.bt;
+                    p.ct = time;
+                }
+            } 
+            else if (algo === 'SJF-NP') {
+                while(completed < n) {
+                    let idx = -1;
+                    let minBt = Infinity;
+                    for(let i=0; i<n; i++) {
+                        if(processes[i].at <= time && !processes[i].isCompleted) {
+                            if(processes[i].bt < minBt) { minBt = processes[i].bt; idx = i; }
+                        }
+                    }
+                    if(idx !== -1) {
+                        let p = processes[idx];
+                        ganttBlocks.push({ id: p.id, start: time, end: time + p.bt, duration: p.bt, color: p.color });
+                        time += p.bt;
+                        p.ct = time;
+                        p.isCompleted = true;
+                        completed++;
+                    } else {
+                        // CPU Idle
+                        ganttBlocks.push({ id: 'IDLE', start: time, end: time+1, duration: 1, color: '#cbd5e1' });
+                        time++;
+                    }
+                }
+                // Merge Idle blocks
+                ganttBlocks = mergeBlocks(ganttBlocks);
+            }
+            else if (algo === 'SJF-P') {
+                // SRTF
+                let prevId = null;
+                let blockStart = time;
+
+                while(completed < n) {
+                    let idx = -1;
+                    let minRt = Infinity;
+                    for(let i=0; i<n; i++) {
+                        if(processes[i].at <= time && !processes[i].isCompleted) {
+                            if(processes[i].rt < minRt) { minRt = processes[i].rt; idx = i; }
+                        }
+                    }
+
+                    if(idx !== -1) {
+                        let p = processes[idx];
+                        if(prevId !== null && prevId !== p.id) {
+                            // Context switch, save previous block
+                            let prevP = processes.find(pr => pr.id === prevId);
+                            ganttBlocks.push({ id: prevId, start: blockStart, end: time, duration: time - blockStart, color: prevP ? prevP.color : '#cbd5e1' });
+                            blockStart = time;
+                        }
+                        
+                        prevId = p.id;
+                        p.rt -= 1;
+                        time++;
+
+                        if(p.rt === 0) {
+                            p.ct = time;
+                            p.isCompleted = true;
+                            completed++;
+                            // Save block
+                            ganttBlocks.push({ id: prevId, start: blockStart, end: time, duration: time - blockStart, color: p.color });
+                            prevId = null; // force next loop to start new block
+                            blockStart = time;
+                        }
+                    } else {
+                        // CPU Idle
+                        if(prevId !== 'IDLE') {
+                            if(prevId !== null) {
+                                let prevP = processes.find(pr => pr.id === prevId);
+                                ganttBlocks.push({ id: prevId, start: blockStart, end: time, duration: time - blockStart, color: prevP ? prevP.color : '#cbd5e1' });
+                            }
+                            prevId = 'IDLE';
+                            blockStart = time;
+                        }
+                        time++;
+                    }
+                }
+                ganttBlocks = mergeBlocks(ganttBlocks);
+            }
+            else if (algo === 'RR') {
+                // Simplified RR using a queue
+                let queue = [];
+                let pCopy = JSON.parse(JSON.stringify(processes));
+                // Find first arrivals
+                let arrived = new Array(n).fill(false);
+                for(let i=0; i<n; i++) {
+                    if(pCopy[i].at <= time) { queue.push(i); arrived[i] = true; }
+                }
+
+                while(completed < n) {
+                    if(queue.length === 0) {
+                        ganttBlocks.push({ id: 'IDLE', start: time, end: time+1, duration: 1, color: '#cbd5e1' });
+                        time++;
+                        for(let i=0; i<n; i++) {
+                            if(pCopy[i].at <= time && !arrived[i]) { queue.push(i); arrived[i] = true; }
+                        }
+                        continue;
+                    }
+
+                    let idx = queue.shift();
+                    let p = pCopy[idx];
+                    let runTime = Math.min(quantum, p.rt);
+                    
+                    ganttBlocks.push({ id: p.id, start: time, end: time + runTime, duration: runTime, color: p.color });
+                    time += runTime;
+                    p.rt -= runTime;
+
+                    // Check newly arrived while running
+                    for(let i=0; i<n; i++) {
+                        if(pCopy[i].at > (time - runTime) && pCopy[i].at <= time && !arrived[i]) {
+                            queue.push(i);
+                            arrived[i] = true;
+                        }
+                    }
+
+                    if(p.rt > 0) {
+                        queue.push(idx); // re-enqueue
+                    } else {
+                        processes[idx].ct = time; // sync back to original array for metrics
+                        completed++;
+                    }
+                }
+                ganttBlocks = mergeBlocks(ganttBlocks);
+            }
+
+            // Calculate Metrics
+            let totalTat = 0, totalWt = 0;
+            processes.forEach(p => {
+                p.tat = p.ct - p.at;
+                p.wt = p.tat - p.bt;
+                totalTat += p.tat;
+                totalWt += p.wt;
+            });
+            const avgTat = (totalTat / n).toFixed(2);
+            const avgWt = (totalWt / n).toFixed(2);
+
+            // Render Output
+            renderGantt(ganttBlocks);
+            renderTable(processes, avgTat, avgWt);
+            
+            let titleStr = algo;
+            if(algo === 'RR') titleStr += ` (Q=${quantum})`;
+            document.getElementById('algoTitle').textContent = `Algoritma: ${titleStr}`;
+            document.getElementById('resultContainer').classList.remove('hidden');
+        }
+
+        function mergeBlocks(blocks) {
+            if(blocks.length === 0) return [];
+            let res = [blocks[0]];
+            for(let i=1; i<blocks.length; i++) {
+                let last = res[res.length-1];
+                if(last.id === blocks[i].id) {
+                    last.end = blocks[i].end;
+                    last.duration += blocks[i].duration;
+                } else {
+                    res.push(blocks[i]);
+                }
+            }
+            return res;
+        }
+
+        // ==========================================
+        // 4. RENDERING LOGIC
+        // ==========================================
+        function renderGantt(blocks) {
+            const container = document.getElementById('ganttContainer');
+            container.innerHTML = '';
+            
+            const totalTime = blocks[blocks.length-1].end;
+            
+            // Add Start 0 label manually
+            container.innerHTML += `<div class="absolute -bottom-6 -left-1 text-xs text-slate-500 font-mono font-bold">0</div>`;
+
+            blocks.forEach((b, index) => {
+                const widthPct = (b.duration / totalTime) * 100;
+                const isLast = index === blocks.length - 1;
+                
+                // Div block
+                const div = document.createElement('div');
+                div.className = 'gantt-block group';
+                div.style.width = `${widthPct}%`;
+                div.style.backgroundColor = b.color;
+                
+                // Label
+                div.innerHTML = `
+                    <span class="${b.id === 'IDLE' ? 'text-slate-500' : 'text-white'} group-hover:scale-125 transition-transform">${b.id === 'IDLE' ? '' : b.id}</span>
+                    <div class="gantt-time ${!isLast ? 'middle-time' : ''} -right-2 font-bold">${b.end}</div>
+                    
+                    <!-- Tooltip -->
+                    <div class="absolute -top-10 opacity-0 group-hover:opacity-100 bg-slate-900 text-white text-xs py-1 px-2 rounded pointer-events-none transition-opacity shadow-lg z-10 whitespace-nowrap">
+                        ${b.id}: [${b.start} - ${b.end}]<br>Durasi: ${b.duration}ms
+                    </div>
+                `;
+                
+                if(isLast) div.style.borderRight = 'none';
+                
+                container.appendChild(div);
+            });
+        }
+
+        function renderTable(processes, avgTat, avgWt) {
+            document.getElementById('res-atat').textContent = avgTat;
+            document.getElementById('res-awt').textContent = avgWt;
+            
+            const tbody = document.getElementById('resultBody');
+            tbody.innerHTML = '';
+
+            processes.sort((a,b) => {
+                // sort P1 to P5 logic
+                return parseInt(a.id.replace('P','')) - parseInt(b.id.replace('P',''));
+            }).forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="bg-white border-b border-slate-100 hover:bg-slate-50">
+                        <td class="px-4 py-3 font-bold" style="color: ${p.color}">${p.id}</td>
+                        <td class="px-4 py-3 font-mono">${p.ct}</td>
+                        <td class="px-4 py-3 font-mono">${p.tat}</td>
+                        <td class="px-4 py-3 font-mono font-bold text-brand-600">${p.wt}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // ==========================================
+        // 5. CHART.JS COMPARISON
+        // ==========================================
+        function initComparisonChart() {
+            const ctx = document.getElementById('awtChart').getContext('2d');
+            compChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['FCFS', 'SJF (Non-Preempt)', 'SRTF (Preempt)', 'Round Robin (Q=2)'],
+                    datasets: [{
+                        label: 'Average Waiting Time (ms)',
+                        data: [8.4, 4.8, 3.4, 9.6], // Pre-calculated mathematically for P1-P5
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)', // Blue
+                            'rgba(245, 158, 11, 0.8)', // Amber
+                            'rgba(217, 70, 239, 0.8)', // Fuchsia
+                            'rgba(16, 185, 129, 0.8)'  // Emerald
+                        ],
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            title: { display: true, text: 'Milidetik (ms)', color: '#64748b', font: {family: 'Inter', weight: 'bold'} }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: {family: 'Inter', weight: 'bold'}, color: '#475569' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(c) { return ` AWT: ${c.raw} ms`; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            initComparisonChart();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sampul Interaktif: Praktikum Sistem Operasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#eff6ff', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        accent: { 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling on the main cover */
+        }
+        
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: auto;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Modal Transitions */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
+        
+        /* Custom Scrollbar for Modal */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="text-slate-200 font-sans antialiased h-screen w-screen flex items-center justify-center relative">
+
+    <!-- Interactive Canvas Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Ambient Glows -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+    <!-- Main Cover Container -->
+    <main class="relative z-10 w-full max-w-4xl p-6 perspective-1000">
+        
+        <div class="glass-card rounded-3xl p-8 md:p-14 animate-float border-t border-l border-white/10 relative overflow-hidden group">
+            
+            <!-- Shimmer effect on hover -->
+            <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:animate-[shimmer_2s_infinite]"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center relative z-10">
+                
+                <!-- Left Content -->
+                <div class="md:col-span-8 flex flex-col space-y-6">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <span class="px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full text-xs font-bold tracking-wider uppercase">Modul Praktikum</span>
+                        <span class="px-3 py-1 bg-accent-500/20 text-accent-500 border border-accent-500/30 rounded-full text-xs font-bold tracking-wider uppercase"><i class="fas fa-check-circle mr-1"></i> Berbasis OBE</span>
+                    </div>
+                    
+                    <h1 class="text-5xl md:text-6xl font-black tracking-tight leading-tight">
+                        <span class="block text-white">SISTEM</span>
+                        <span class="block text-gradient">OPERASI</span>
+                    </h1>
+                    
+                    <p class="text-lg text-slate-400 font-light max-w-xl leading-relaxed">
+                        Pendekatan praktis arsitektur sistem, baris perintah (CLI), administrasi server Linux, hingga otomatisasi infrastruktur jaringan kelas industri.
+                    </p>
+
+                    <div class="pt-6 border-t border-white/10 flex flex-wrap gap-x-10 gap-y-4">
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Kode MK</div>
+                            <div class="font-mono text-slate-200">KPT0502219</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Bobot</div>
+                            <div class="font-mono text-slate-200">2 SKS (Praktikum)</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Semester</div>
+                            <div class="font-mono text-slate-200">2 (Dua)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Content (Identity/Logos) -->
+                <div class="md:col-span-4 flex flex-col items-start md:items-end justify-center space-y-8 border-t md:border-t-0 md:border-l border-white/10 pt-8 md:pt-0 md:pl-8 text-left md:text-right">
+                    
+                    <div class="flex flex-col items-start md:items-end w-full">
+                        <div class="w-20 h-20 bg-white/80 rounded-2xl flex items-center justify-center mb-4 border border-white/20 shadow-lg p-2 transition-transform hover:scale-105">
+                            <img src="https://lh3.googleusercontent.com/d/1zzEmoTmvTPSDHDCe7HU96TPfsZK2Bjqd" alt="Logo Prodi TI D3" class="w-full h-full object-contain">
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">Universitas Muhammadiyah<br>Magelang</h3>
+                        <p class="text-sm text-slate-400 font-medium">Program Studi D3 Teknologi Informasi</p>
+                    </div>
+
+                    <div class="w-full">
+                        <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Dosen Pengampu:</p>
+                        <p class="text-sm font-medium text-slate-300">Bambang Pujiarto, S.Kom., M.Kom.</p>
+                        <p class="text-xs text-slate-500 mt-1 font-mono">Tahun Akademik 2026</p>
+                    </div>
+
+                    <button onclick="toggleTOC()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center justify-center md:justify-end space-x-2 group">
+                        <span>Lihat Daftar Isi</span>
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Decorative Terminal Dots -->
+            <div class="absolute top-4 left-4 flex space-x-2">
+                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-8 text-slate-500 text-sm font-mono flex items-center justify-center gap-2">
+            <i class="fas fa-mouse pointer-events-none animate-bounce"></i> Gerakkan kursor untuk berinteraksi dengan arsitektur sistem
+        </div>
+    </main>
+
+    <!-- Table of Contents Modal Overlay -->
+    <div id="toc-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div id="toc-content" class="bg-slate-800 border border-slate-700 w-full max-w-5xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col modal-enter">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-slate-700 bg-slate-800/50 rounded-t-2xl">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Daftar Isi Modul</h2>
+                    <p class="text-sm text-slate-400 font-mono mt-1">Total 12 Modul Praktikum Berkelanjutan</p>
+                </div>
+                <button onclick="toggleTOC()" class="text-slate-400 hover:text-white w-10 h-10 bg-slate-700 hover:bg-slate-600 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto custom-scroll flex-grow">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <!-- Modules generated dynamically or hardcoded based on outline -->
+                    <a href="modul01.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-blue-500 transition-colors group cursor-pointer">
+                        <div class="text-blue-400 font-mono text-sm font-bold mb-2">MODUL 01</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-blue-300 transition-colors">Pengenalan Lingkungan Virtualisasi dan Instalasi OS</h3>
+                        <p class="text-xs text-slate-400">Hypervisor, VirtualBox, Ubuntu 22.04 LTS, Konsep Snapshot VM.</p>
+                    </a>
+
+                    <a href="modul02.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-blue-500 transition-colors group cursor-pointer">
+                        <div class="text-blue-400 font-mono text-sm font-bold mb-2">MODUL 02</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-blue-300 transition-colors">Command Line Interface (CLI) Dasar & Text Editor</h3>
+                        <p class="text-xs text-slate-400">Navigasi FHS, Manipulasi Direktori, Editor teks Nano dan Vim.</p>
+                    </a>
+
+                    <a href="modul03.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-blue-500 transition-colors group cursor-pointer">
+                        <div class="text-blue-400 font-mono text-sm font-bold mb-2">MODUL 03</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-blue-300 transition-colors">Manajemen User, Group, dan Hak Akses (Permissions)</h3>
+                        <p class="text-xs text-slate-400">Konsep Superuser, Chown, Chmod (Oktal & Simbolik), Skenario Kolaborasi.</p>
+                    </a>
+
+                    <a href="modul04.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-accent-500 transition-colors group cursor-pointer">
+                        <div class="text-accent-500 font-mono text-sm font-bold mb-2">MODUL 04</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-accent-400 transition-colors">Eksplorasi Interaktif & Wargame</h3>
+                        <p class="text-xs text-slate-400">Remote SSH, TryHackMe, OverTheWire Bandit, Escaping Characters.</p>
+                    </a>
+
+                    <a href="modul05.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-purple-500 transition-colors group cursor-pointer">
+                        <div class="text-purple-400 font-mono text-sm font-bold mb-2">MODUL 05</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-purple-300 transition-colors">Manajemen Proses dan Monitoring Kinerja Sistem</h3>
+                        <p class="text-xs text-slate-400">Process Tree, htop, Job Control (fg/bg), Sinyal IPC (kill, killall).</p>
+                    </a>
+
+                    <a href="modul06.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-purple-500 transition-colors group cursor-pointer">
+                        <div class="text-purple-400 font-mono text-sm font-bold mb-2">MODUL 06</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-purple-300 transition-colors">Simulasi Penjadwalan CPU (CPU Scheduling)</h3>
+                        <p class="text-xs text-slate-400">Algoritma FCFS, SJF, Round Robin, Metrik Turnaround & Waiting Time.</p>
+                    </a>
+
+                    <a href="modul07.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-purple-500 transition-colors group cursor-pointer">
+                        <div class="text-purple-400 font-mono text-sm font-bold mb-2">MODUL 07</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-purple-300 transition-colors">Simulasi Manajemen Memori & Page Replacement</h3>
+                        <p class="text-xs text-slate-400">Paging, Virtual Memory, Page Fault, Algoritma FIFO, LRU, Optimal.</p>
+                    </a>
+
+                    <a href="modul08.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-emerald-500 transition-colors group cursor-pointer">
+                        <div class="text-emerald-400 font-mono text-sm font-bold mb-2">MODUL 08</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-emerald-300 transition-colors">Version Control System dengan Git</h3>
+                        <p class="text-xs text-slate-400">Arsitektur Git, Commit Lifecycle, GitHub, Personal Access Token.</p>
+                    </a>
+
+                    <a href="modul09.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-emerald-500 transition-colors group cursor-pointer">
+                        <div class="text-emerald-400 font-mono text-sm font-bold mb-2">MODUL 09</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-emerald-300 transition-colors">Pengantar Ubuntu Server & Remote Admin</h3>
+                        <p class="text-xs text-slate-400">Arsitektur Headless, Netplan YAML, Static IP, Konfigurasi OpenSSH.</p>
+                    </a>
+
+                    <a href="modul10.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-emerald-500 transition-colors group cursor-pointer">
+                        <div class="text-emerald-400 font-mono text-sm font-bold mb-2">MODUL 10</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-emerald-300 transition-colors">Dasar-Dasar Shell Scripting</h3>
+                        <p class="text-xs text-slate-400">Shebang, Variabel, If-Else, Looping, Otomatisasi Administrasi.</p>
+                    </a>
+
+                    <a href="modul11.html" class="block bg-slate-900/50 border border-slate-700 p-5 rounded-xl hover:border-emerald-500 transition-colors group cursor-pointer">
+                        <div class="text-emerald-400 font-mono text-sm font-bold mb-2">MODUL 11</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-emerald-300 transition-colors">Manajemen Paket dan Layanan (Services)</h3>
+                        <p class="text-xs text-slate-400">APT Package Manager, Systemd Daemon, systemctl, journalctl logging.</p>
+                    </a>
+
+                    <a href="modul12.html" class="block bg-slate-900/50 border border-blue-500 p-5 rounded-xl hover:bg-blue-900/20 transition-colors group relative overflow-hidden shadow-[0_0_15px_rgba(59,130,246,0.15)] cursor-pointer">
+                        <div class="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg z-10">CAPSTONE</div>
+                        <div class="text-blue-400 font-mono text-sm font-bold mb-2">MODUL 12</div>
+                        <h3 class="text-white font-semibold leading-snug mb-2 group-hover:text-blue-300 transition-colors">Proyek Integrasi: Konfigurasi LAMP Stack</h3>
+                        <p class="text-xs text-slate-400">Final Project. Deploy Linux, Apache, MySQL, PHP & UFW Firewall.</p>
+                    </a>
+                    <!-- QUIZ BUTTON / CARD -->
+                    <a href="quiz.html" class="block bg-slate-900/50 border border-orange-500 p-5 rounded-xl hover:bg-orange-900/20 transition-colors group relative overflow-hidden shadow-[0_0_15px_rgba(249,115,22,0.15)] cursor-pointer md:col-span-2 lg:col-span-3 flex flex-col items-center justify-center text-center mt-2">
+                        <div class="absolute top-0 right-0 bg-orange-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">EVALUASI AKHIR</div>
+                        <div class="text-orange-400 font-mono text-sm font-bold mb-2"><i class="fas fa-gamepad mr-2 text-lg"></i> QUIZ KOMPREHENSIF</div>
+                        <h3 class="text-white text-lg font-bold leading-snug mb-2 group-hover:text-orange-300 transition-colors">Uji Kompetensi Sistem Operasi</h3>
+                        <p class="text-xs text-slate-400 max-w-lg mx-auto">Evaluasi pemahaman Anda terhadap seluruh materi dari Modul 1 hingga Modul 12 melalui kuis interaktif dan wargame ringan.</p>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-700 text-center text-xs text-slate-500 bg-slate-800/50 rounded-b-2xl font-mono">
+                Silakan buka dokumen panduan utama (MD/PDF) untuk membaca isi detail setiap modul.
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts for Interactivity -->
+    <script>
+        // --- 1. MODAL TOGGLE LOGIC ---
+        const modal = document.getElementById('toc-modal');
+        const content = document.getElementById('toc-content');
+        let isModalOpen = false;
+
+        function toggleTOC() {
+            if (!isModalOpen) {
+                modal.classList.remove('hidden');
+                // Trigger reflow
+                void content.offsetWidth;
+                content.classList.remove('modal-exit', 'modal-exit-active');
+                content.classList.add('modal-enter', 'modal-enter-active');
+                
+                setTimeout(() => {
+                    content.classList.remove('modal-enter', 'modal-enter-active');
+                }, 300);
+                isModalOpen = true;
+            } else {
+                content.classList.add('modal-exit', 'modal-exit-active');
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    content.classList.remove('modal-exit', 'modal-exit-active');
+                }, 200);
+                isModalOpen = false;
+            }
+        }
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                toggleTOC();
+            }
+        });
+
+        // --- 2. INTERACTIVE CANVAS BACKGROUND (PARTICLES/NODES) ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let particlesArray = [];
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('mousemove', function(event) {
+            mouse.x = event.x;
+            mouse.y = event.y;
+        });
+
+        window.addEventListener('mouseout', function() {
+            mouse.x = undefined;
+            mouse.y = undefined;
+        });
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            init();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Particle Class
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x;
+                this.y = y;
+                this.directionX = directionX;
+                this.directionY = directionY;
+                this.size = size;
+                this.color = color;
+                this.baseX = this.x;
+                this.baseY = this.y;
+                this.density = (Math.random() * 30) + 1;
+            }
+            
+            // Draw particle
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            // Update particle position & mouse interaction
+            update() {
+                // Bounce off walls
+                if (this.x > canvas.width || this.x < 0) {
+                    this.directionX = -this.directionX;
+                }
+                if (this.y > canvas.height || this.y < 0) {
+                    this.directionY = -this.directionY;
+                }
+
+                // Collision detection with mouse (Nodes push away slightly or connect)
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Interactive effect: Nodes subtly move towards mouse to form a network
+                if (distance < mouse.radius) {
+                    this.x -= dx / (this.density * 2);
+                    this.y -= dy / (this.density * 2);
+                } else {
+                    // Return to original steady pace
+                    if (this.x !== this.baseX) {
+                        let dxBase = this.x - this.baseX;
+                        this.x -= dxBase / 100;
+                    }
+                    if (this.y !== this.baseY) {
+                        let dyBase = this.y - this.baseY;
+                        this.y -= dyBase / 100;
+                    }
+                }
+
+                // Move particle
+                this.x += this.directionX;
+                this.y += this.directionY;
+                this.draw();
+            }
+        }
+
+        // Initialize particle array
+        function init() {
+            particlesArray = [];
+            // Amount of particles based on screen size
+            let numberOfParticles = (canvas.height * canvas.width) / 15000;
+            
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2) + 1;
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 1) - 0.5;
+                let directionY = (Math.random() * 1) - 0.5;
+                let color = 'rgba(59, 130, 246, 0.4)'; // Blueish tech dots
+
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        // Connect lines between nearby particles
+        function connect() {
+            let opacityValue = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
+                                 + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                    
+                    // If particles are close, draw line
+                    if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+                        opacityValue = 1 - (distance / 20000);
+                        ctx.strokeStyle = `rgba(148, 163, 184, ${opacityValue * 0.2})`; // Slate colored lines
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+            connect();
+        }
+
+        // Start
+        resizeCanvas();
+        animate();
+
+    </script>
+</body>
+</html>
